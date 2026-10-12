@@ -32,7 +32,7 @@ const AppLayout: React.FC = () => {
   const [projectName, setProjectName] = useState('Untitled Fluid Pour');
   const [artistName, setArtistName] = useState('Arthur Gustavo');
   const [notes, setNotes] = useState('');
-  const [stats, setStats] = useState({ particles: 0, cells: 0 });
+  const [stats, setStats] = useState<{ particles: number; cells: number; unit?: 'particles' | 'percent' }>({ particles: 0, cells: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
@@ -215,11 +215,11 @@ const AppLayout: React.FC = () => {
 
         <main className="canvas-stage">
           <div className="stage-meta">
-            <div className="live-status"><span className="live-dot" />Live canvas <i /> {stats.particles} wet <i /> {stats.cells} cells</div>
+            <div className="live-status"><span className="live-dot" />Live canvas <i /> {stats.unit === 'percent' ? `${stats.particles}% wet` : `${stats.particles} wet`} <i /> {stats.cells} cells</div>
             <div className="stage-tip"><Sparkles /> Hold and move to pour</div>
           </div>
           <div className="canvas-frame">
-            <FluidCanvas ref={canvasRef} tool={tool} pourMode={pourMode} color={color} cupColors={cupColors} params={params} tilt={tilt} spin={spin} surface={surface} onTiltChange={setTilt} onStats={(particles, cells) => setStats({ particles, cells })} />
+            <FluidCanvas ref={canvasRef} tool={tool} pourMode={pourMode} color={color} cupColors={cupColors} params={params} tilt={tilt} spin={spin} surface={surface} onTiltChange={setTilt} onStats={(particles, cells, unit) => setStats({ particles, cells, unit })} />
           </div>
           <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
         </main>
