@@ -29,3 +29,6 @@ recovery-test-output/
 *.njsproj
 *.sln
 *.sw?
+
+# Local worker secrets
+.dev.vars

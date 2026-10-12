@@ -14,7 +14,7 @@ import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluid
 import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen } from 'lucide-react';
 
 const AppLayout: React.FC = () => {
-  const isPro = useProSession();
+  const isPro = useProSession(message => showToast(message));
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState<'save' | 'export'>('save');
   const canvasRef = useRef<FluidCanvasHandle>(null);

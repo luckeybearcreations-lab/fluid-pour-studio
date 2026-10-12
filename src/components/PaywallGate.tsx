@@ -4,59 +4,62 @@
  * Free tier: unlimited pouring, unlimited undo/redo, project file open/download.
  * Pro ($4.99/mo): Save to gallery, export PNG (1×/2×/4×), cloud sync.
  *
- * Gate logic is local — no network call needed to render.
- * Actual payment goes to Stripe. After payment, Stripe redirects to
- * /?upgraded=1 which stores a local session flag until the tab closes
- * (good enough for an MVP; replace with a real JWT/session check later).
+ * Payment goes to Stripe. The payment link sends buyers back to
+ * /?checkout={CHECKOUT_SESSION_ID}; the worker (worker/pro.ts) confirms the
+ * purchase with Stripe and keeps Pro in a signed cookie, re-checking the
+ * subscription once a day.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Sparkles, Lock } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
-// Stripe buy link — replace with your actual Stripe payment link
+// Stripe buy link. Its "After payment" setting must redirect to
+// https://<app domain>/?checkout={CHECKOUT_SESSION_ID}
 // ---------------------------------------------------------------------------
 const STRIPE_LINK =
   'https://buy.stripe.com/9B6aEY8QIdrP0iL4P21sQ0c';
 const PRO_MONTHLY_PRICE = '$4.99 / month';
-const SESSION_KEY = 'lbfs_pro_session';
+const SUPPORT_EMAIL = 'luckeybearcreations@gmail.com';
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Hook: asks the server whether this browser has Pro, and claims Pro when
+// Stripe sends the buyer back after checkout.
 // ---------------------------------------------------------------------------
-
-/** Returns true when the current tab session has Pro access. */
-export function hasProAccess(): boolean {
-  try {
-    return sessionStorage.getItem(SESSION_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function grantProSession() {
-  try {
-    sessionStorage.setItem(SESSION_KEY, '1');
-  } catch {
-    // sessionStorage blocked — ignore, gate stays open per refresh
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Hook: reads URL param set by Stripe redirect and persists session
-// ---------------------------------------------------------------------------
-export function useProSession(): boolean {
-  const [pro, setPro] = useState(hasProAccess);
+export function useProSession(onNotice?: (message: string) => void): boolean {
+  const [pro, setPro] = useState(false);
+  const noticeRef = useRef(onNotice);
+  noticeRef.current = onNotice;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('upgraded') === '1') {
-      grantProSession();
-      setPro(true);
-      // Clean the URL so it doesn't linger
-      const clean = window.location.pathname;
-      window.history.replaceState({}, '', clean);
+    const checkout = params.get('checkout');
+    if (checkout) {
+      // Clean the URL so a refresh doesn't claim again
+      params.delete('checkout');
+      const query = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
     }
+    const request = checkout
+      ? fetch('/api/pro/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: checkout }),
+        })
+      : fetch('/api/pro/status', { cache: 'no-store' });
+    request
+      .then(res => res.json().catch(() => ({})))
+      .then((data: { pro?: boolean }) => {
+        if (data.pro) {
+          setPro(true);
+          if (checkout) noticeRef.current?.('Pro unlocked. Thanks for subscribing!');
+        } else if (checkout) {
+          noticeRef.current?.(`We couldn't confirm your payment yet. Refresh in a minute, or email ${SUPPORT_EMAIL}.`);
+        }
+      })
+      .catch(() => {
+        if (checkout) noticeRef.current?.(`We couldn't reach the server to confirm your payment. Refresh to try again.`);
+      });
   }, []);
 
   return pro;
@@ -80,11 +83,8 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
       : 'export your artwork as a print-ready PNG';
 
   const handleUpgrade = () => {
-    // Return URL includes ?upgraded=1 so the session flag is set on redirect back
-    const returnUrl = encodeURIComponent(
-      `${window.location.href.split('?')[0]}?upgraded=1`,
-    );
-    window.location.href = `${STRIPE_LINK}?success_url=${returnUrl}`;
+    // The payment link itself redirects back here with the checkout id.
+    window.location.href = STRIPE_LINK;
   };
 
   return (
