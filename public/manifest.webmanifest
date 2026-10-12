@@ -1,0 +1,10 @@
+{
+  "name": "Lucky Bear Fluid Studio",
+  "short_name": "Fluid Studio",
+  "description": "Pour, tilt, comb, and save expressive fluid artwork.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#141816",
+  "theme_color": "#141816"
+}
