@@ -61,7 +61,7 @@ const pourRate = (p: PhysicsParams) => 0.03 + 0.09 * clamp01(p.flowRate);
 
 // ---------- paint layers ----------
 
-interface Layer {
+export interface Layer {
   paint: PaintSplat;
   flow: number;
   cells: number;
@@ -170,6 +170,29 @@ interface Pointer {
 
 type Script = { t: number; run: (t: number, dt: number) => boolean };
 
+/**
+ * The cup to draw over the canvas this frame. Positions are canvas UV with y
+ * pointing DOWN (screen), sizes are in canvas heights.
+ */
+export interface CupView {
+  /** Where the paint lands. */
+  x: number;
+  y: number;
+  /** pour: tipped over the canvas. flip: upside down on the canvas. lift: a flipped cup being lifted off. */
+  pose: 'pour' | 'flip' | 'lift';
+  /** 0..1 while a flipped cup is lifted away. */
+  lift: number;
+  /** stream: a steady pour. drip: drops. flick: shaken droplets. none: nothing leaving the cup. */
+  flow: 'stream' | 'drip' | 'flick' | 'none';
+  /** Width of the stream. */
+  width: number;
+  /** 0..1, how much paint is left in the cup. */
+  fill: number;
+  /** The cup's layers, and the one leaving the cup now. */
+  layers: readonly Layer[];
+  current: Layer;
+}
+
 export class PourDirector {
   private pointers = new Map<number, Pointer>();
   private scripts: Script[] = [];
@@ -177,8 +200,14 @@ export class PourDirector {
   private torchClock = 0;
   private dripClock = 0;
   private cupCache: { key: unknown[]; cup: Cup } | null = null;
+  /** The cup to draw this frame, or null when nothing is being poured. */
+  view: CupView | null = null;
 
   constructor(private engine: GpuFluidEngine) {}
+
+  private show(x: number, y: number, cup: Cup, current: Layer, flow: CupView['flow'], width: number, fill: number, pose: CupView['pose'] = 'pour', lift = 0) {
+    this.view = { x, y: 1 - y, pose, lift, flow, width, fill: clamp01(fill), layers: cup.layers, current };
+  }
 
   get busy() {
     return this.scripts.length > 0;
@@ -193,6 +222,7 @@ export class PourDirector {
   cancel() {
     this.scripts = [];
     this.pointers.clear();
+    this.view = null;
   }
 
   private cup(input: StudioInput): Cup {
@@ -234,6 +264,7 @@ export class PourDirector {
 
   update(dt: number, input: StudioInput) {
     if (dt <= 0) return;
+    this.view = null;
     if (this.pointers.size) {
       const cup = this.cup(input);
       for (const ptr of this.pointers.values()) this.applyTool(ptr, dt, input, cup);
@@ -275,8 +306,11 @@ export class PourDirector {
     switch (input.tool) {
       case 'pour': {
         const rate = pourRate(p);
+        // A cup held for a while slowly empties, but never runs dry.
+        const fill = 0.35 + 0.55 * Math.exp(-ptr.age / 10);
         if (input.pourMode === 'splatter') {
           if (!last) return;
+          this.show(x, y, cup, cup.layers[0], 'flick', size * 0.3, fill);
           // Flicked droplets land around the cup and splash outward a little.
           const count = Math.floor((16 + 30 * clamp01(p.flowRate)) * dt * 2 + Math.random());
           for (let i = 0; i < count; i++) {
@@ -292,6 +326,7 @@ export class PourDirector {
         }
         if (input.pourMode === 'drip') {
           if (!last) return;
+          this.show(x, y, cup, this.seq.next(cup, 0, 'stream'), 'drip', size * 0.3, fill);
           this.dripClock -= dt;
           if (this.dripClock > 0) return;
           this.dripClock = (0.32 - 0.22 * clamp01(p.flowRate)) * (0.6 + 0.8 * Math.random());
@@ -310,6 +345,7 @@ export class PourDirector {
           return;
         }
         const layer = this.seq.next(cup, dt, 'stream');
+        this.show(x, y, cup, layer, 'stream', size * (0.18 + 0.25 * clamp01(p.flowRate)), fill);
         e.splatPaint(x, y, size * 0.75, layer.paint);
         e.addSource(x, y, size * 0.6, rate * layer.flow);
         if (Math.random() < cup.cellPower * layer.cells * 1.2 * dt) {
@@ -402,9 +438,11 @@ export class PourDirector {
     const seq = new CupSequencer();
     const A = () => e.aspect;
 
-    const pourAt = (x: number, y: number, dt: number, style: CupStyle, rateScale: number, sizeScale = 1) => {
+    const streamWidth = size * (0.18 + 0.25 * clamp01(p.flowRate));
+    const pourAt = (x: number, y: number, dt: number, style: CupStyle, rateScale: number, sizeScale = 1, fill = 0.6) => {
       const layer = seq.next(cup, dt, style);
       const s = size * sizeScale;
+      this.show(x, y, cup, layer, 'stream', streamWidth * Math.sqrt(rateScale), fill);
       e.splatPaint(x, y, s * 0.75, layer.paint);
       e.addSource(x, y, s * 0.6, rate * rateScale * layer.flow);
     };
@@ -424,8 +462,17 @@ export class PourDirector {
       case 'flip':
         // Flip cup: the cup sits upside down and leaks, then is lifted and the rest rushes out.
         run = (t, dt) => {
-          if (t < 2.4) pourAt(ox + ((Math.random() - 0.5) * 0.004) / A(), oy + (Math.random() - 0.5) * 0.004, dt, 'flip', 2.4, 1.4);
-          else if (t < 2.75) pourAt(ox, oy, dt, 'flip', 4.5, 1.6);
+          if (t < 2.4) {
+            pourAt(ox + ((Math.random() - 0.5) * 0.004) / A(), oy + (Math.random() - 0.5) * 0.004, dt, 'flip', 2.4, 1.4);
+            this.show(ox, oy, cup, this.view?.current ?? cup.layers[0], 'none', 0, 1 - 0.3 * (t / 2.4), 'flip');
+          } else if (t < 2.75) {
+            pourAt(ox, oy, dt, 'flip', 4.5, 1.6);
+          }
+          if (t >= 2.4 && t < 3.3) {
+            const k = (t - 2.4) / 0.9;
+            // The cup comes up and the paint left inside rushes out.
+            this.show(ox, oy, cup, this.view?.current ?? cup.layers[0], t < 2.75 ? 'stream' : 'none', size * 0.9 * (1 - k), 0.7 * (1 - k * 1.5), 'lift', k);
+          }
           if (t > 2.8) sprinkle(ox, oy, 0.25, dt, 2.2);
           return t < 6;
         };
@@ -436,7 +483,7 @@ export class PourDirector {
           if (t < 2.6) {
             const a = t * 4.2;
             const r = size * 0.35 * (1 + 0.4 * Math.sin(t * 1.7));
-            pourAt(ox + (Math.cos(a) * r) / A(), oy + Math.sin(a) * r, dt, 'dirty', 1.7, 1.2);
+            pourAt(ox + (Math.cos(a) * r) / A(), oy + Math.sin(a) * r, dt, 'dirty', 1.7, 1.2, 1 - t / 2.6);
           }
           if (t > 2.6) sprinkle(ox, oy, 0.22, dt, 1.8);
           return t < 5;
@@ -448,7 +495,7 @@ export class PourDirector {
           if (t < 4.5) {
             const a = t * 7;
             const r = size * 0.25;
-            pourAt(ox + (Math.cos(a) * r) / A(), oy + Math.sin(a) * r, dt, 'ring', 1.2);
+            pourAt(ox + (Math.cos(a) * r) / A(), oy + Math.sin(a) * r, dt, 'ring', 1.2, 1, 1 - t / 4.5);
           }
           if (t > 4.5) sprinkle(ox, oy, 0.3, dt, 1.5);
           return t < 6.5;
@@ -461,7 +508,7 @@ export class PourDirector {
             const k = t / 4.2;
             const a = t * 3.4;
             const r = 0.015 + 0.11 * k;
-            pourAt(ox + (Math.cos(a) * r) / A(), oy + Math.sin(a) * r, dt, 'stream', 1.1, 0.9);
+            pourAt(ox + (Math.cos(a) * r) / A(), oy + Math.sin(a) * r, dt, 'stream', 1.1, 0.9, 1 - k);
           }
           if (t > 4.2) sprinkle(ox, oy, 0.25, dt, 1.5);
           return t < 6;
@@ -482,7 +529,7 @@ export class PourDirector {
         const thin = 1 - clamp01(p.viscosity) * 0.4;
         run = (t, dt) => {
           const i = Math.floor(t / 0.9);
-          if (i < 3) pourAt(spots[i].x, spots[i].y, dt, 'dirty', 1.3);
+          if (i < 3) pourAt(spots[i].x, spots[i].y, dt, 'dirty', 1.3, 1, 1 - t / 2.7);
           if (t > 2.9 && t < 6.4) {
             const k = (t - 2.9) / 3.5;
             const sweep = Math.min(sweeps - 1, Math.floor(k * sweeps));
@@ -512,6 +559,7 @@ export class PourDirector {
             const y = oy + (band / (n - 1) - 0.5) * 0.4;
             const x = ox + ((local - 0.5) * 0.6) / A();
             const layer = cup.layers[band % cup.layers.length];
+            this.show(x, y, cup, layer, 'stream', streamWidth, 1 - t / 3.6);
             e.splatPaint(x, y, size * 1.1, layer.paint);
             e.addSource(x, y, size * 0.8, rate * 0.9 * layer.flow);
           }
@@ -549,7 +597,7 @@ export class PourDirector {
         }));
         const thin = 1 - clamp01(p.viscosity) * 0.4;
         run = (t, dt) => {
-          if (t < 2.4) pourAt(ox, oy, dt, 'dirty', 1.5, 1.2);
+          if (t < 2.4) pourAt(ox, oy, dt, 'dirty', 1.5, 1.2, 1 - t / 2.4);
           if (t > 2.6 && t < 5.4) {
             const k = (t - 2.6) / 2.8;
             e.addSource(ox, oy, 0.02, 0.03 * (1 - 0.5 * k) * thin, { reach: 0.3 });

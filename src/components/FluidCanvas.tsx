@@ -2,11 +2,15 @@ import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef,
 import LegacyFluidCanvas, { FluidCanvasHandle, FluidCanvasProps } from './LegacyFluidCanvas';
 import { GpuFluidEngine } from '@/lib/gpu/GpuFluidEngine';
 import { PourDirector, engineSettings } from '@/lib/gpu/pours';
+import { CupOverlay } from '@/lib/gpu/cupOverlay';
 import type { Tool } from '@/lib/fluidEngine';
 
 export type { FluidCanvasHandle, FluidCanvasProps };
 
 const MAX_DPR = 2;
+// How fast the turntable spins up and coasts to a stop (per second).
+const SPIN_UP = 1.6;
+const SPIN_DOWN = 2.4;
 
 const cursorFor = (tool: Tool) =>
   tool === 'pour' ? 'crosshair'
@@ -21,6 +25,7 @@ type GpuProps = FluidCanvasProps & { onUnsupported: () => void };
 const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<GpuFluidEngine | null>(null);
   const directorRef = useRef<PourDirector | null>(null);
   const propsRef = useRef(props);
@@ -31,9 +36,11 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
+    const overlay = overlayRef.current ? new CupOverlay(overlayRef.current) : null;
 
     const pixelSize = (): [number, number] => {
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+      overlay?.resize(container.clientWidth, container.clientHeight, dpr);
       return [Math.max(1, Math.round(container.clientWidth * dpr)), Math.max(1, Math.round(container.clientHeight * dpr))];
     };
     let applied: unknown[] | null = null;
@@ -80,6 +87,7 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
     let last = performance.now();
     let statsClock = 0;
     let reported = '';
+    let spin = 0;
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
       const engine = engineRef.current;
@@ -89,9 +97,13 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       const dt = Math.min(Math.max((now - last) / 1000, 0), 1 / 30);
       last = now;
       const p = propsRef.current;
-      const key = [p.params, p.surface, p.tilt, p.spin];
+      // The turntable has momentum: it spins up and coasts down instead of jumping.
+      const target = p.spin;
+      spin += (target - spin) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(spin) ? SPIN_UP : SPIN_DOWN)));
+      if (Math.abs(target - spin) < 0.002) spin = target;
+      const key = [p.params, p.surface, p.tilt, spin];
       if (!applied || key.some((k, i) => k !== applied?.[i])) {
-        engine.setSettings(engineSettings(p.params, p.surface, p.tilt, p.spin));
+        engine.setSettings(engineSettings(p.params, p.surface, p.tilt, spin));
         applied = key;
       }
       // Once every bit of paint has dried and nothing is being poured, the
@@ -102,6 +114,7 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
         engine.step(dt);
       }
       engine.render();
+      overlay?.draw(settled ? null : director.view, dt);
       statsClock += dt;
       if (statsClock > 0.25) {
         statsClock = 0;
@@ -237,6 +250,7 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
         onPointerCancel={onPointerUp}
         onLostPointerCapture={onPointerUp}
       />
+      <canvas ref={overlayRef} className="pointer-events-none absolute inset-0 block w-full h-full" aria-hidden="true" />
       <div className="pointer-events-none absolute inset-0" style={{ boxShadow: 'inset 0 0 110px rgba(37,30,20,0.13)' }} />
     </div>
   );

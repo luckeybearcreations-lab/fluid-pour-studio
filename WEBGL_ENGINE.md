@@ -9,6 +9,8 @@ files are unchanged.
 - `src/lib/gpu/shaders.ts`: the simulation and display shaders.
 - `src/lib/gpu/GpuFluidEngine.ts`: buffers, the simulation step, undo, export, stats.
 - `src/lib/gpu/pours.ts`: maps the studio sliders, tools, cup layers and pour modes onto the engine.
+- `src/lib/gpu/cupOverlay.ts`: draws the cup and its paint stream over the canvas while a pour runs (never part of the painting or exports).
+- `src/components/SpinDock.tsx`: the floating turntable box (hold to spin, brake, spin while holding the canvas).
 - `src/components/FluidCanvas.tsx`: the canvas component (same props and handle as before).
 - `src/components/LegacyFluidCanvas.tsx`: the previous particle engine, kept as a fallback.
 
@@ -16,6 +18,7 @@ files are unchanged.
 
 - Paint is a continuous fluid, so pours spread, ribbon and marble instead of being drawn as blobs.
 - Tilt and the turntable move the paint with real gravity, centrifugal and Coriolis forces.
+- The turntable has momentum: it spins up and coasts to a stop instead of jumping between speeds.
 - Cells come from silicone, cell frequency, the torch and the cell tool, and only open where there is paint.
 - Paint dries over time (Drying rate). Dry paint stops moving and loses some gloss.
 - Metallic and pearl layers keep their shine as they flow.

@@ -6,6 +6,7 @@ import PhysicsControls from '@/components/PhysicsControls';
 import GalleryPanel from '@/components/GalleryPanel';
 import StudioNotebook, { PourRecipe } from '@/components/StudioNotebook';
 import CanvasControls from '@/components/CanvasControls';
+import SpinDock from '@/components/SpinDock';
 import { PaywallModal, useProSession } from '@/components/PaywallGate';
 import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine';
 import { PaintColor, DEFAULT_COLOR } from '@/lib/palette';
@@ -18,6 +19,7 @@ const AppLayout: React.FC = () => {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState<'save' | 'export'>('save');
   const canvasRef = useRef<FluidCanvasHandle>(null);
+  const frameRef = useRef<HTMLDivElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
   const [tool, setTool] = useState<Tool>('pour');
   const [pourMode, setPourMode] = useState<PourMode>('stream');
@@ -182,7 +184,7 @@ const AppLayout: React.FC = () => {
       <header className="studio-header">
         <div className="brand-lockup">
           <button onClick={() => setSidebarOpen(o => !o)} className="icon-button lg:hidden" aria-label="Toggle studio controls"><PanelLeft /></button>
-          <div className="brand-mark" aria-hidden="true"><span /><span /><span /></div>
+          <img className="brand-mark" src="/lucky-bear-mark.webp" alt="" aria-hidden="true" width={38} height={38} />
           <div>
             <div className="flex items-center gap-2"><h1>Lucky Bear</h1><span className="studio-label">Fluid Studio</span></div>
             <p>Paint without limits.</p>
@@ -218,8 +220,9 @@ const AppLayout: React.FC = () => {
             <div className="live-status"><span className="live-dot" />Live canvas <i /> {stats.unit === 'percent' ? `${stats.particles}% wet` : `${stats.particles} wet`} <i /> {stats.cells} cells</div>
             <div className="stage-tip"><Sparkles /> Hold and move to pour</div>
           </div>
-          <div className="canvas-frame">
+          <div ref={frameRef} className="canvas-frame">
             <FluidCanvas ref={canvasRef} tool={tool} pourMode={pourMode} color={color} cupColors={cupColors} params={params} tilt={tilt} spin={spin} surface={surface} onTiltChange={setTilt} onStats={(particles, cells, unit) => setStats({ particles, cells, unit })} />
+            <SpinDock spin={spin} onSpinChange={setSpin} frameRef={frameRef} />
           </div>
           <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
         </main>
