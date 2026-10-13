@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Trash2, Download, FolderOpen, ImageOff, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 import { GalleryItem } from '@/lib/gallery';
+import { saveFile } from '@/lib/native';
 
 export type { GalleryItem };
 
@@ -21,12 +22,7 @@ const GalleryPanel: React.FC<Props> = ({ open, items, loading, offline, syncing,
     try {
       const res = await fetch(item.full);
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = `${item.name.replace(/\s+/g, '-').toLowerCase()}.jpg`;
-      link.href = url;
-      link.click();
-      URL.revokeObjectURL(url);
+      await saveFile(blob, `${item.name.replace(/\s+/g, '-').toLowerCase()}.jpg`);
     } catch {
       // last resort: open in new tab
       window.open(item.full, '_blank');

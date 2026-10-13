@@ -1,0 +1,62 @@
+name: Android app
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_VERSION_CODE: ${{ github.run_number }}
+      ANDROID_VERSION_NAME: 1.0.${{ github.run_number }}
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-36 build-tools;36.0.0
+
+      - name: Build the web app and copy it into Android
+        run: |
+          npm ci
+          npm run build:android
+
+      - name: Build a test APK (install on a phone)
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fluid-studio-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build the Play Store bundle (signed)
+        if: ${{ env.HAS_KEY == 'true' }}
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+          ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.keystore" ./gradlew --no-daemon bundleRelease
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}
+        with:
+          name: fluid-studio-play-bundle
+          path: android/app/build/outputs/bundle/release/app-release.aab

@@ -1,6 +1,7 @@
 import { CanvasSurface, PhysicsParams, PourMode, Tool } from './fluidEngine';
 import { DEFAULT_COLOR, PaintColor } from './palette';
 import { normalizePaintMaterial } from './paintMaterials';
+import { saveFile } from './native';
 
 export const DEFAULT_PHYSICS: PhysicsParams = {
   viscosity: 0.45,
@@ -138,10 +139,6 @@ export function normalizeFluidProject(value: unknown): FluidProjectData {
 
 export function downloadFluidProject(project: FluidProjectData) {
   const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.download = `${project.projectName.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '') || 'lucky-bear-fluid-project'}.luckybear.json`;
-  link.href = url;
-  link.click();
-  URL.revokeObjectURL(url);
+  const filename = `${project.projectName.replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '') || 'lucky-bear-fluid-project'}.luckybear.json`;
+  void saveFile(blob, filename).catch(() => undefined);
 }

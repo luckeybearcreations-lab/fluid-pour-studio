@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Lucky Bear Fluid Studio</string>
+    <string name="title_activity_main">Lucky Bear Fluid Studio</string>
+    <string name="package_name">com.luckybear.fluidstudio</string>
+    <string name="custom_url_scheme">com.luckybear.fluidstudio</string>
+</resources>
