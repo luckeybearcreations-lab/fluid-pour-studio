@@ -163,3 +163,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 .spin-dock-canvas button svg { width: 12px; height: 12px; }
 @media (max-width: 700px) { .spin-dock-area { inset: 10px; } }
 @media (prefers-reduced-motion: reduce) { .spin-dock-dial.turning { animation-name: none !important; } }
+/* Narrow screens: keep the logo in view; the header buttons scroll sideways with Save pinned at the end. */
+@media (max-width: 700px) { .brand-lockup { flex: none; }.header-actions { min-width: 0; overflow-x: auto; scrollbar-width: none; }.header-actions::-webkit-scrollbar { display: none; }.header-actions .action-button { flex: none; }.header-actions .action-button.primary { position: sticky; right: 0; box-shadow: -8px 0 10px rgba(20,24,22,.95); } }
+@media (max-width: 520px) { .brand-lockup h1 { display: none; } }
