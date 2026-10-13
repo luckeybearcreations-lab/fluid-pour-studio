@@ -12,14 +12,19 @@
  *   PRO_TOKEN_SECRET   any long random string; used to sign the pass
  * Optional:
  *   PRO_PRODUCT_ID     the Stripe product that counts as Pro (defaults to Fluid Studio Pro)
+ *   FOUNDER_CODES      lifetime Pro for the owners, as "name:code,name:code" (codes of 16+
+ *                      characters). Opening /?founder=<code> posts the code to /api/pro/founder.
+ *                      Removing a name revokes that founder's pass on their next visit.
  */
 
 export interface ProEnv {
   STRIPE_SECRET_KEY?: string;
   PRO_TOKEN_SECRET?: string;
   PRO_PRODUCT_ID?: string;
+  FOUNDER_CODES?: string;
 }
 
+// sub is a Stripe subscription id, or "founder:<name>" for a founder pass.
 type Pass = { sub: string; chk: number };
 type Subscription = { id: string; status: string; items?: { data?: { price?: { product?: string } }[] } };
 type CheckoutSession = { status: string; mode: string; subscription: Subscription | string | null };
@@ -31,6 +36,7 @@ const RECHECK_MS = 24 * 60 * 60 * 1000;
 const COOKIE_MAX_AGE = 400 * 24 * 60 * 60;
 // past_due keeps Pro while Stripe retries a failed renewal.
 const ACTIVE = new Set(['active', 'trialing', 'past_due']);
+const FOUNDER = 'founder:';
 
 const enc = new TextEncoder();
 const dec = new TextDecoder();
@@ -102,6 +108,38 @@ function isPro(sub: Subscription, env: ProEnv) {
   return ACTIVE.has(sub.status) && (sub.items?.data ?? []).some(item => item.price?.product === product);
 }
 
+function founders(env: ProEnv) {
+  const list = new Map<string, string>();
+  for (const entry of (env.FOUNDER_CODES ?? '').split(',')) {
+    const [name, code] = entry.split(':').map(part => part?.trim());
+    if (name && code && code.length >= 16) list.set(name, code);
+  }
+  return list;
+}
+
+/** Compares HMACs of both codes so the check takes the same time whatever is guessed. */
+async function sameCode(a: string, b: string, secret: string) {
+  const key = await hmacKey(secret);
+  const [x, y] = await Promise.all([a, b].map(s => crypto.subtle.sign('HMAC', key, enc.encode(s))));
+  const u = new Uint8Array(x), v = new Uint8Array(y);
+  let diff = 0;
+  for (let i = 0; i < u.length; i++) diff |= u[i] ^ v[i];
+  return diff === 0;
+}
+
+async function founder(request: Request, env: ProEnv, secret: string) {
+  if (request.method !== 'POST') return json({ error: 'Use POST' }, 405);
+  const body = (await request.json().catch(() => null)) as { code?: unknown } | null;
+  const code = typeof body?.code === 'string' ? body.code : '';
+  for (const [name, expected] of founders(env)) {
+    if (await sameCode(code, expected, secret)) {
+      const pass = await signPass({ sub: FOUNDER + name, chk: Date.now() }, secret);
+      return json({ pro: true }, 200, setCookie(pass, COOKIE_MAX_AGE));
+    }
+  }
+  return json({ pro: false, error: 'Invalid founder link' }, 403);
+}
+
 async function claim(request: Request, env: ProEnv, secret: string) {
   if (request.method !== 'POST') return json({ error: 'Use POST' }, 405);
   const body = (await request.json().catch(() => null)) as { session_id?: unknown } | null;
@@ -123,6 +161,11 @@ async function status(request: Request, env: ProEnv, secret: string) {
   const token = cookieOf(request);
   const pass = token ? await readPass(token, secret) : null;
   if (!pass) return json({ pro: false });
+  if (pass.sub.startsWith(FOUNDER)) {
+    if (!founders(env).has(pass.sub.slice(FOUNDER.length))) return json({ pro: false }, 200, setCookie('', 0));
+    // Refresh the cookie on every visit so a founder pass never runs out.
+    return json({ pro: true }, 200, setCookie(token!, COOKIE_MAX_AGE));
+  }
   if (Date.now() - pass.chk < RECHECK_MS) return json({ pro: true });
 
   const sub = await stripeGet<Subscription>(env, `subscriptions/${pass.sub}`);
@@ -137,6 +180,7 @@ export async function handleProRequest(request: Request, env: ProEnv): Promise<R
   const secret = env.PRO_TOKEN_SECRET;
   if (!env.STRIPE_SECRET_KEY || !secret) return json({ pro: false, error: 'Pro is not set up on this server' }, 503);
   const { pathname } = new URL(request.url);
+  if (pathname === '/api/pro/founder') return founder(request, env, secret);
   if (pathname === '/api/pro/claim') return claim(request, env, secret);
   if (pathname === '/api/pro/status') return status(request, env, secret);
   return json({ error: 'Not found' }, 404);

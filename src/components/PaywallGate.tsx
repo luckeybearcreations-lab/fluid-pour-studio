@@ -7,7 +7,7 @@
  * Payment goes to Stripe. The payment link sends buyers back to
  * /?checkout={CHECKOUT_SESSION_ID}; the worker (worker/pro.ts) confirms the
  * purchase with Stripe and keeps Pro in a signed cookie, re-checking the
- * subscription once a day.
+ * subscription once a day. Founder links (/?founder=<code>) unlock Pro for the owners.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -34,31 +34,37 @@ export function useProSession(onNotice?: (message: string) => void): boolean {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get('checkout');
-    if (checkout) {
+    const founder = params.get('founder');
+    if (checkout || founder) {
       // Clean the URL so a refresh doesn't claim again
       params.delete('checkout');
+      params.delete('founder');
       const query = params.toString();
       window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
     }
+    const post = (path: string, body: unknown) =>
+      fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const request = checkout
-      ? fetch('/api/pro/claim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: checkout }),
-        })
-      : fetch('/api/pro/status', { cache: 'no-store' });
+      ? post('/api/pro/claim', { session_id: checkout })
+      : founder
+        ? post('/api/pro/founder', { code: founder })
+        : fetch('/api/pro/status', { cache: 'no-store' });
     request
       .then(res => res.json().catch(() => ({})))
       .then((data: { pro?: boolean }) => {
         if (data.pro) {
           setPro(true);
           if (checkout) noticeRef.current?.('Pro unlocked. Thanks for subscribing!');
+          if (founder) noticeRef.current?.('Founder access unlocked on this device.');
         } else if (checkout) {
           noticeRef.current?.(`We couldn't confirm your payment yet. Refresh in a minute, or email ${SUPPORT_EMAIL}.`);
+        } else if (founder) {
+          noticeRef.current?.(`That founder link didn't work. Email ${SUPPORT_EMAIL}.`);
         }
       })
       .catch(() => {
         if (checkout) noticeRef.current?.(`We couldn't reach the server to confirm your payment. Refresh to try again.`);
+        if (founder) noticeRef.current?.(`We couldn't reach the server. Open the founder link again to retry.`);
       });
   }, []);
 
