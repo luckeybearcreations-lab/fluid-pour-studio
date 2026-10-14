@@ -35,3 +35,4 @@ recovery-test-output/
 dist-android
 *.keystore
 *.jks
+*.tsbuildinfo
