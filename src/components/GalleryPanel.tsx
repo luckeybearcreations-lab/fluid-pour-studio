@@ -1,7 +1,7 @@
 import React from 'react';
 import { X, Trash2, Download, FolderOpen, ImageOff, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 import { GalleryItem } from '@/lib/gallery';
-import { saveFile } from '@/lib/native';
+import { isNativeApp, saveFile } from '@/lib/native';
 
 export type { GalleryItem };
 
@@ -29,6 +29,8 @@ const GalleryPanel: React.FC<Props> = ({ open, items, loading, offline, syncing,
     }
   };
 
+  // The Android app keeps pours on the phone only, so there is no cloud to be offline from.
+  const native = isNativeApp();
   const localCount = items.filter(i => i.local).length;
 
   return (
@@ -42,7 +44,7 @@ const GalleryPanel: React.FC<Props> = ({ open, items, loading, offline, syncing,
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-zinc-100 uppercase tracking-widest">Gallery</h2>
-            {offline && (
+            {offline && !native && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 text-[10px] font-medium" title="Cloud unreachable — showing offline copies">
                 <CloudOff className="w-3 h-3" /> Offline
               </span>
@@ -53,7 +55,7 @@ const GalleryPanel: React.FC<Props> = ({ open, items, loading, offline, syncing,
           </button>
         </div>
 
-        {localCount > 0 && !offline && (
+        {localCount > 0 && !offline && !native && (
           <div className="mx-5 mt-4 flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-amber-500/10 ring-1 ring-amber-500/20">
             <p className="text-[11px] text-amber-300">
               {localCount} pour{localCount > 1 ? 's' : ''} saved offline
