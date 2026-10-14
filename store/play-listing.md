@@ -31,7 +31,7 @@ Made by Lucky Bear Creations.
 **Graphics (in this folder)**
 - App icon: play-icon-512.png
 - Feature graphic: feature-graphic-1024x500.png
-- Phone screenshots: screenshot-1.png, screenshot-2.png (add more from your phone for a better listing)
+- Phone screenshots: screenshot-1.png to screenshot-4.png (real pours made in the app)
 
 ## Answers for Play Console's "App content" forms
 - Ads: No ads
