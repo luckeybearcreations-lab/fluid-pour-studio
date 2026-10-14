@@ -144,13 +144,14 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
         <h2 className="paywall-title">Go Pro to {featureLabel}</h2>
 
         <p className="paywall-desc">
-          Pour freely — forever free. Unlock gallery saves, cloud sync,
-          and high-res PNG exports with a Pro subscription.
+          {native
+            ? 'Pour freely — forever free. Unlock gallery saves and high-res PNG exports with a Pro subscription.'
+            : 'Pour freely — forever free. Unlock gallery saves, cloud sync, and high-res PNG exports with a Pro subscription.'}
         </p>
 
         <ul className="paywall-perks">
           <li><Sparkles size={14} /> Save pours to your personal gallery</li>
-          <li><Sparkles size={14} /> Cloud sync across devices</li>
+          {!native && <li><Sparkles size={14} /> Cloud sync across devices</li>}
           <li><Sparkles size={14} /> 1×, 2×, and 4× print-ready PNG export</li>
           <li><Sparkles size={14} /> Cancel any time — no commitment</li>
         </ul>
