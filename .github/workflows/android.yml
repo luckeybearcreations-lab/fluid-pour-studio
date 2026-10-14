@@ -63,8 +63,10 @@ jobs:
         working-directory: android
         env:
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          # Alias and key password are optional: the upload key uses alias "upload"
+          # and the same password as the keystore.
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'upload' }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload.keystore"
           ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.keystore" ./gradlew --no-daemon bundleRelease

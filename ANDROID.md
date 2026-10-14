@@ -20,8 +20,9 @@ It runs fully offline from files inside the app.
 ## Building
 GitHub Actions builds the app on every push (`.github/workflows/android.yml`):
 - `fluid-studio-test-apk`: a test APK you can install on a phone straight away.
-- `fluid-studio-play-bundle`: the signed `.aab` for Google Play. Built only when these repository secrets exist:
-  `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+- `fluid-studio-play-bundle`: the signed `.aab` for Google Play. Built only when the repository secrets
+  `ANDROID_KEYSTORE_BASE64` and `ANDROID_KEYSTORE_PASSWORD` exist (`ANDROID_KEY_ALIAS` defaults to `upload`,
+  `ANDROID_KEY_PASSWORD` to the keystore password).
 
 The upload key lives outside the repo (never commit it). Keep a backup: if it is lost,
 Play support can reset the upload key, but it takes days.
