@@ -76,3 +76,11 @@ jobs:
         with:
           name: fluid-studio-play-bundle
           path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Put the Play Store bundle on the test release
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab lucky-bear-fluid-studio.aab
+          gh release upload android-test lucky-bear-fluid-studio.aab --clobber
