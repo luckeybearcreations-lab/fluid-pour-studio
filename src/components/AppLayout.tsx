@@ -13,6 +13,7 @@ import { PaintColor, DEFAULT_COLOR } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
 import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluidProject } from '@/lib/projectFile';
 import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen } from 'lucide-react';
+import { isNativeApp } from '@/lib/native';
 
 const AppLayout: React.FC = () => {
   const isPro = useProSession(message => showToast(message));
@@ -72,7 +73,7 @@ const AppLayout: React.FC = () => {
       const name = `Pour #${gallery.length + 1}`;
       const { item, offline: savedOffline } = await savePour(name, snap);
       setGallery(prev => [item, ...prev]); setOffline(savedOffline);
-      showToast(savedOffline ? 'Cloud unavailable — saved on this device' : 'Saved to your gallery');
+      showToast(savedOffline && !isNativeApp() ? 'Cloud unavailable — saved on this device' : 'Saved to your gallery');
     } catch (e) { showToast(e instanceof Error ? e.message : 'Could not save pour'); }
     finally { setSaving(false); }
   }, [gallery.length, saving]);
@@ -224,7 +225,7 @@ const AppLayout: React.FC = () => {
             <FluidCanvas ref={canvasRef} tool={tool} pourMode={pourMode} color={color} cupColors={cupColors} params={params} tilt={tilt} spin={spin} surface={surface} onTiltChange={setTilt} onStats={(particles, cells, unit) => setStats({ particles, cells, unit })} />
             <SpinDock spin={spin} onSpinChange={setSpin} frameRef={frameRef} />
           </div>
-          <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
+          <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && !isNativeApp() && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
         </main>
       </div>
 

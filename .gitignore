@@ -32,3 +32,7 @@ recovery-test-output/
 
 # Local worker secrets
 .dev.vars
+dist-android
+*.keystore
+*.jks
+*.tsbuildinfo

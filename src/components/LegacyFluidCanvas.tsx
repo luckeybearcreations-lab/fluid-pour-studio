@@ -4,6 +4,7 @@ import {
   ONE_SHOT_POUR_MODES, Sim, PhysicsParams, PourMode, Tool, CanvasSurface,
 } from '@/lib/fluidEngine';
 import { PaintColor } from '@/lib/palette';
+import { saveFile } from '@/lib/native';
 
 export interface FluidCanvasHandle {
   clear: () => void;
@@ -107,10 +108,9 @@ const LegacyFluidCanvas = forwardRef<FluidCanvasHandle, FluidCanvasProps>((props
       const safeScale = Math.max(1, Math.min(4, Math.round(scale)));
       const out = composite(safeScale, transparent);
       if (!out) return;
-      const link = document.createElement('a');
-      link.download = `lucky-bear-pour-${safeScale}x-${Date.now()}.png`;
-      link.href = out.toDataURL('image/png');
-      link.click();
+      out.toBlob(blob => {
+        if (blob) void saveFile(blob, `lucky-bear-pour-${safeScale}x-${Date.now()}.png`).catch(() => undefined);
+      }, 'image/png');
     },
     getSnapshot: () => {
       const full = composite(1);

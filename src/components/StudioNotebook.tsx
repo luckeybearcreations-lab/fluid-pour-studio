@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BookOpen, Download, FlaskConical, Plus, Trash2, X } from 'lucide-react';
 import { PaintColor } from '@/lib/palette';
 import { PhysicsParams, PourMode } from '@/lib/fluidEngine';
+import { saveFile } from '@/lib/native';
 
 export interface PourRecipe {
   id: string;
@@ -53,12 +54,7 @@ const StudioNotebook: React.FC<Props> = ({ open, color, mode, params, onClose, o
   };
   const exportRecipes = () => {
     const blob = new Blob([JSON.stringify(recipes, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'lucky-bear-fluid-recipes.json';
-    link.click();
-    URL.revokeObjectURL(url);
+    void saveFile(blob, 'lucky-bear-fluid-recipes.json').catch(() => undefined);
   };
 
   return (

@@ -1,0 +1,86 @@
+name: Android app
+
+on:
+  push:
+    branches: [main, 'claude/**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      ANDROID_VERSION_CODE: ${{ github.run_number }}
+      ANDROID_VERSION_NAME: 1.0.${{ github.run_number }}
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platforms;android-36 build-tools;36.0.0
+
+      - name: Build the web app and copy it into Android
+        run: |
+          npm ci
+          npm run build:android
+
+      - name: Build a test APK (install on a phone)
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fluid-studio-test-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      # A plain .apk download (no zip, no expiry) on the repo's Releases page.
+      - name: Put the test APK on the "android-test" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk lucky-bear-fluid-studio-test.apk
+          gh release view android-test >/dev/null 2>&1 || gh release create android-test --prerelease \
+            --target "$GITHUB_SHA" --title "Android test app" \
+            --notes "Latest test build of the Android app. Download the .apk on an Android phone and tap it to install."
+          gh release upload android-test lucky-bear-fluid-studio-test.apk --clobber
+
+      - name: Build the Play Store bundle (signed)
+        if: ${{ env.HAS_KEY == 'true' }}
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          # Alias and key password are optional: the upload key uses alias "upload"
+          # and the same password as the keystore.
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'upload' }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload.keystore"
+          ANDROID_KEYSTORE_PATH="$RUNNER_TEMP/upload.keystore" ./gradlew --no-daemon bundleRelease
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}
+        with:
+          name: fluid-studio-play-bundle
+          path: android/app/build/outputs/bundle/release/app-release.aab
+
+      - name: Put the Play Store bundle on the test release
+        if: ${{ hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp android/app/build/outputs/bundle/release/app-release.aab lucky-bear-fluid-studio.aab
+          gh release upload android-test lucky-bear-fluid-studio.aab --clobber

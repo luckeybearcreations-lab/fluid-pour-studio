@@ -12,6 +12,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Sparkles, Lock } from 'lucide-react';
+import { isNativeApp } from '@/lib/native';
 
 // ---------------------------------------------------------------------------
 // Stripe buy link. Its "After payment" setting must redirect to
@@ -32,6 +33,21 @@ export function useProSession(onNotice?: (message: string) => void): boolean {
   noticeRef.current = onNotice;
 
   useEffect(() => {
+    if (isNativeApp()) {
+      let cleanup = () => {};
+      let cancelled = false;
+      void import('@/lib/playBilling').then(({ hasPlayPro, onPlayProChanged }) => {
+        if (cancelled) return;
+        const refresh = () => void hasPlayPro().then(active => { if (!cancelled) setPro(active); });
+        refresh();
+        cleanup = onPlayProChanged(() => {
+          setPro(true);
+          noticeRef.current?.('Pro unlocked. Thanks for subscribing!');
+        });
+      });
+      return () => { cancelled = true; cleanup(); };
+    }
+
     const params = new URLSearchParams(window.location.search);
     const checkout = params.get('checkout');
     if (checkout) {
@@ -75,6 +91,17 @@ interface PaywallModalProps {
 }
 
 export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClose }) => {
+  const native = isNativeApp();
+  const [playPrice, setPlayPrice] = useState<string | null>(null);
+  const [buying, setBuying] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!open || !native) return;
+    setError('');
+    void import('@/lib/playBilling').then(({ playProPrice }) => playProPrice()).then(setPlayPrice);
+  }, [open, native]);
+
   if (!open) return null;
 
   const featureLabel =
@@ -82,10 +109,26 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
       ? 'save pours to your gallery and sync across devices'
       : 'export your artwork as a print-ready PNG';
 
-  const handleUpgrade = () => {
-    // The payment link itself redirects back here with the checkout id.
-    window.location.href = STRIPE_LINK;
+  const handleUpgrade = async () => {
+    if (!native) {
+      // The payment link itself redirects back here with the checkout id.
+      window.location.href = STRIPE_LINK;
+      return;
+    }
+    setBuying(true);
+    setError('');
+    try {
+      const { buyPlayPro } = await import('@/lib/playBilling');
+      if (await buyPlayPro()) onClose();
+      else setError('The purchase did not finish. You have not been charged.');
+    } catch {
+      setError("Google Play couldn't start the purchase. Check your connection and try again.");
+    } finally {
+      setBuying(false);
+    }
   };
+
+  const price = native ? (playPrice ? `${playPrice} / month` : PRO_MONTHLY_PRICE) : PRO_MONTHLY_PRICE;
 
   return (
     <div className="paywall-overlay" role="dialog" aria-modal="true" aria-label="Upgrade to Pro">
@@ -101,23 +144,28 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
         <h2 className="paywall-title">Go Pro to {featureLabel}</h2>
 
         <p className="paywall-desc">
-          Pour freely — forever free. Unlock gallery saves, cloud sync,
-          and high-res PNG exports with a Pro subscription.
+          {native
+            ? 'Pour freely — forever free. Unlock gallery saves and high-res PNG exports with a Pro subscription.'
+            : 'Pour freely — forever free. Unlock gallery saves, cloud sync, and high-res PNG exports with a Pro subscription.'}
         </p>
 
         <ul className="paywall-perks">
           <li><Sparkles size={14} /> Save pours to your personal gallery</li>
-          <li><Sparkles size={14} /> Cloud sync across devices</li>
+          {!native && <li><Sparkles size={14} /> Cloud sync across devices</li>}
           <li><Sparkles size={14} /> 1×, 2×, and 4× print-ready PNG export</li>
           <li><Sparkles size={14} /> Cancel any time — no commitment</li>
         </ul>
 
-        <button className="paywall-cta" onClick={handleUpgrade}>
-          Start Pro — {PRO_MONTHLY_PRICE}
+        <button className="paywall-cta" onClick={handleUpgrade} disabled={buying}>
+          {buying ? 'Opening Google Play…' : `Start Pro — ${price}`}
         </button>
 
+        {error && <p className="paywall-fine" role="alert">{error}</p>}
+
         <p className="paywall-fine">
-          Secure checkout via Stripe. Cancel any time from your account.
+          {native
+            ? 'Billed through Google Play. Cancel any time in Play Store → Subscriptions.'
+            : 'Secure checkout via Stripe. Cancel any time from your account.'}
         </p>
       </div>
     </div>

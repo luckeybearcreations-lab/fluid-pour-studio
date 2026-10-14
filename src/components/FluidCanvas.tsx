@@ -4,6 +4,7 @@ import { GpuFluidEngine } from '@/lib/gpu/GpuFluidEngine';
 import { PourDirector, engineSettings } from '@/lib/gpu/pours';
 import { CupOverlay } from '@/lib/gpu/cupOverlay';
 import type { Tool } from '@/lib/fluidEngine';
+import { saveFile } from '@/lib/native';
 
 export type { FluidCanvasHandle, FluidCanvasProps };
 
@@ -158,12 +159,7 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       if (!out) return;
       out.toBlob(blob => {
         if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.download = `lucky-bear-pour-${s}x-${Date.now()}.png`;
-        link.href = url;
-        link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        void saveFile(blob, `lucky-bear-pour-${s}x-${Date.now()}.png`).catch(() => undefined);
       }, 'image/png');
     },
     getSnapshot: () => {
