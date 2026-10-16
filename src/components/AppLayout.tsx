@@ -239,6 +239,7 @@ const AppLayout: React.FC = () => {
       <GalleryPanel open={galleryOpen} items={gallery} loading={galleryLoading} offline={offline} syncing={syncing} onClose={() => setGalleryOpen(false)} onLoad={handleLoad} onDelete={handleDelete} onSync={handleSync} />
       <StudioNotebook open={notebookOpen} color={color} mode={pourMode} params={params} onClose={() => setNotebookOpen(false)} onLoad={loadRecipe} />
       <PaywallModal open={paywallOpen} feature={paywallFeature} onClose={() => setPaywallOpen(false)} />
+      <a className="gus-home-badge" href="https://www.shopluckybears.com/gus" aria-label="Back to Gus' card" title="Back to Gus' card"><img src="/home-badge.webp" alt="" width={36} height={36} decoding="async" /><span className="gus-home-badge-label" aria-hidden="true">Gus' card</span></a>
       {toast && <div className="studio-toast">{toast}</div>}
     </div>
   );
