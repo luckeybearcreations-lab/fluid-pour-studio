@@ -166,3 +166,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 /* Narrow screens: keep the logo in view; the header buttons scroll sideways with Save pinned at the end. */
 @media (max-width: 700px) { .brand-lockup { flex: none; }.header-actions { min-width: 0; overflow-x: auto; scrollbar-width: none; }.header-actions::-webkit-scrollbar { display: none; }.header-actions .action-button { flex: none; }.header-actions .action-button.primary { position: sticky; right: 0; box-shadow: -8px 0 10px rgba(20,24,22,.95); } }
 @media (max-width: 520px) { .brand-lockup h1 { display: none; } }
+/* Back to Gus' card badge: bottom-right in the canvas footer row, clear of the tools, the canvas and the phone tool dock. */
+.gus-home-badge { position: fixed; z-index: 30; right: 12px; bottom: 8px; box-sizing: border-box; width: 36px; height: 36px; display: block; border: 2px solid #f2dda0; border-radius: 50%; background: #141816; box-shadow: 0 8px 20px rgba(0,0,0,.5); transition: transform .2s ease; }
+.gus-home-badge img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.gus-home-badge-label { position: absolute; right: calc(100% + 8px); top: 50%; transform: translateY(-50%); padding: 5px 10px; border-radius: 999px; background: rgba(17,22,19,.94); color: #f2dda0; font-size: 11px; font-weight: 700; line-height: 1.2; white-space: nowrap; box-shadow: 0 6px 16px rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+.gus-home-badge:hover { transform: translateY(-2px); }
+.gus-home-badge:hover .gus-home-badge-label, .gus-home-badge:focus-visible .gus-home-badge-label { opacity: 1; }
+.gus-home-badge:focus-visible { outline: 2px solid #e3b76f; outline-offset: 3px; }
+.stage-footer { padding-right: 34px; }
+@media (max-width: 700px) { .gus-home-badge { width: 30px; height: 30px; right: 10px; bottom: calc(max(7px, env(safe-area-inset-bottom)) + 63px); }.stage-footer { padding-right: 34px; } }
