@@ -53,6 +53,14 @@ const AppLayout: React.FC = () => {
     const { items, offline: off } = await fetchPours();
     setGallery(items); setOffline(off); setGalleryLoading(false);
   }, []);
+  const [adChoices, setAdChoices] = useState(false);
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    void import('@/lib/ads').then(async ({ startAds, adPrivacyOptionsRequired }) => {
+      await startAds();
+      setAdChoices(await adPrivacyOptionsRequired());
+    });
+  }, []);
   useEffect(() => {
     setSidebarOpen(window.innerWidth >= 1024);
     refreshGallery();
@@ -225,7 +233,7 @@ const AppLayout: React.FC = () => {
             <FluidCanvas ref={canvasRef} tool={tool} pourMode={pourMode} color={color} cupColors={cupColors} params={params} tilt={tilt} spin={spin} surface={surface} onTiltChange={setTilt} onStats={(particles, cells, unit) => setStats({ particles, cells, unit })} />
             <SpinDock spin={spin} onSpinChange={setSpin} frameRef={frameRef} />
           </div>
-          <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && !isNativeApp() && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
+          <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && !isNativeApp() && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" />{adChoices && !isPro && <button type="button" className="ad-choices" onClick={() => void import('@/lib/ads').then(({ openAdPrivacyOptions }) => openAdPrivacyOptions())}>Ad choices</button>}<span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
         </main>
       </div>
 
