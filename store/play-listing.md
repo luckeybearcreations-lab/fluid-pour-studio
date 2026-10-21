@@ -34,8 +34,12 @@ Made by Lucky Bear Creations.
 - Phone screenshots: screenshot-1.png to screenshot-4.png (real pours made in the app)
 
 ## Answers for Play Console's "App content" forms
-- Ads: No ads
-- Data safety: No data collected, no data shared. (Purchases are handled by Google Play.)
+- Ads: Yes, contains ads (AdMob banner for free users; Pro removes it)
+- Data safety (because of the AdMob SDK, per Google's AdMob disclosure guide):
+  - Collected and shared, for Advertising or marketing, Analytics, and Fraud prevention: Device or other IDs; Approximate location; App activity → App interactions; App info and performance → Crash logs and Diagnostics
+  - Processed ephemerally: No. Required (users can't turn it off): Yes
+  - Encrypted in transit: Yes. Users can request deletion: No (there are no accounts; the advertising ID is reset in phone settings)
+  - Purchases are handled by Google Play.
 - Target audience: 13 and older
 - Content rating questionnaire: pick "All other app types" and answer No to every question; the rating comes out as Everyone
 - Government app / news app / health app: No

@@ -11,6 +11,9 @@ android {
         versionCode Integer.parseInt(System.getenv("ANDROID_VERSION_CODE") ?: "1")
         versionName System.getenv("ANDROID_VERSION_NAME") ?: "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // AdMob app id (AdMob → Apps → Lucky Bear Fluid Studio → App settings). Which ads show
+        // (test or real) is chosen by USE_TEST_ADS in src/lib/ads.ts.
+        manifestPlaceholders = [admobAppId: "ca-app-pub-7105602698632611~6253335508"]
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
              // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61

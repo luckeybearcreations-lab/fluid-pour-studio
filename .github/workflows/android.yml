@@ -16,6 +16,9 @@ jobs:
       ANDROID_VERSION_CODE: ${{ github.run_number }}
       ANDROID_VERSION_NAME: 1.0.${{ github.run_number }}
       HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      # Only these branches replace the files on the "android-test" release, so a
+      # side branch can't swap out the build that is being tested on phones.
+      PUBLISH: ${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/claude/project-thread-prbn8u' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,6 +52,7 @@ jobs:
 
       # A plain .apk download (no zip, no expiry) on the repo's Releases page.
       - name: Put the test APK on the "android-test" release
+        if: ${{ env.PUBLISH == 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -78,7 +82,7 @@ jobs:
           path: android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Put the Play Store bundle on the test release
-        if: ${{ hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}
+        if: ${{ env.PUBLISH == 'true' && hashFiles('android/app/build/outputs/bundle/release/*.aab') != '' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
