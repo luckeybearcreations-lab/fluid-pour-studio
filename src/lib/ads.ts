@@ -4,9 +4,10 @@
  * Free users see one small banner at the bottom of the screen. Pro removes it.
  * The website never loads this file.
  *
- * Until the real ids from the AdMob console are filled in below (and in
- * android/app/build.gradle), the app shows Google's test ads, which are safe
- * to tap and earn nothing.
+ * While USE_TEST_ADS is true the app shows Google's test ads, which are safe
+ * to tap and earn nothing. Keep it on during closed testing (testers tapping
+ * real ads counts as invalid traffic and can get the AdMob account banned) and
+ * turn it off for the production release.
  */
 import {
   AdMob,
@@ -17,12 +18,13 @@ import {
 } from '@capacitor-community/admob';
 import { hasPlayPro, onPlayProChanged } from '@/lib/playBilling';
 
-/** Banner ad unit id from AdMob → Apps → Fluid Studio → Ad units. Empty = test ads. */
-const BANNER_AD_UNIT_ID = '';
+/** Banner ad unit "Studio bottom banner" from AdMob → Apps → Lucky Bear Fluid Studio → Ad units. */
+const BANNER_AD_UNIT_ID = 'ca-app-pub-7105602698632611/3651670009';
+const USE_TEST_ADS = true;
 /** Google's sample banner unit: always fills, never pays. */
 const TEST_BANNER_AD_UNIT_ID = 'ca-app-pub-3940256099942544/6300978111';
 
-const testing = !BANNER_AD_UNIT_ID;
+const testing = USE_TEST_ADS;
 let started = false;
 
 /** Leaves room for the banner so it never covers the studio's controls. */
@@ -56,7 +58,7 @@ export async function startAds(): Promise<void> {
     void AdMob.addListener(BannerAdPluginEvents.SizeChanged, size => setBannerInset(size.height));
     void AdMob.addListener(BannerAdPluginEvents.FailedToLoad, () => setBannerInset(0));
     await AdMob.showBanner({
-      adId: BANNER_AD_UNIT_ID || TEST_BANNER_AD_UNIT_ID,
+      adId: testing ? TEST_BANNER_AD_UNIT_ID : BANNER_AD_UNIT_ID,
       adSize: BannerAdSize.ADAPTIVE_BANNER,
       position: BannerAdPosition.BOTTOM_CENTER,
       isTesting: testing,
