@@ -93,6 +93,23 @@ vec4 cellAt (vec2 p, float seed, float density) {
 //   The uphill edge of a puddle stays pinned to the canvas, so tipping the
 //   canvas stretches the pour toward the low side instead of sliding it.
 const sourceLib = `
+// Linear filtering done here instead of by the GPU. Phone GPUs blend neighboring
+// texels with only a few bits of precision, so slow-moving paint advanced in
+// uneven steps from one texel to the next and its edges came out combed and
+// stair-stepped. Fetching the four texels and blending at full precision is exact.
+vec4 bilerp (sampler2D t, vec2 uv) {
+  ivec2 size = textureSize(t, 0);
+  vec2 st = uv * vec2(size) - 0.5;
+  vec2 i = floor(st);
+  vec2 f = st - i;
+  ivec2 p = ivec2(i);
+  ivec2 hi = size - 1;
+  vec4 a = texelFetch(t, clamp(p, ivec2(0), hi), 0);
+  vec4 b = texelFetch(t, clamp(p + ivec2(1, 0), ivec2(0), hi), 0);
+  vec4 c = texelFetch(t, clamp(p + ivec2(0, 1), ivec2(0), hi), 0);
+  vec4 d = texelFetch(t, clamp(p + ivec2(1, 1), ivec2(0), hi), 0);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+}
 uniform vec4 uSources[8];
 uniform vec4 uSourceDirs[8];
 uniform int uSourceCount;
@@ -328,8 +345,8 @@ uniform vec2 uSimTexel;
 uniform float uDt;
 uniform vec4 uDecay;
 void main () {
-  vec2 coord = vUv - uDt * (texture(uVelocity, vUv).xy * uSimTexel + sourceFlow(vUv));
-  vec4 s = texture(uSource, coord);
+  vec2 coord = vUv - uDt * (bilerp(uVelocity, vUv).xy * uSimTexel + sourceFlow(vUv));
+  vec4 s = bilerp(uSource, coord);
   if (coord.x < 0.0 || coord.x > 1.0 || coord.y < 0.0 || coord.y > 1.0) s = vec4(0.0);
   fragColor = max(s - uDecay * abs(uDt), vec4(0.0));
 }`;
@@ -347,7 +364,7 @@ uniform vec2 uDyeTexel;
 uniform vec2 uDyeSize;
 uniform float uDt;
 void main () {
-  vec2 coord = vUv - uDt * (texture(uVelocity, vUv).xy * uSimTexel + sourceFlow(vUv));
+  vec2 coord = vUv - uDt * (bilerp(uVelocity, vUv).xy * uSimTexel + sourceFlow(vUv));
   vec4 phiHat = texture(uForward, vUv);
   if (coord.x < 0.0 || coord.x > 1.0 || coord.y < 0.0 || coord.y > 1.0) {
     fragColor = phiHat;
