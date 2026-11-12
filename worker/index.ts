@@ -4,12 +4,14 @@ import { handleProRequest, type ProEnv } from "./pro";
 type AppEnv = NonNullable<Parameters<typeof handler.fetch>[1]> & ProEnv & { PLAY_CERT_FINGERPRINTS?: string };
 
 // Android app links: tells Android that the Google Play app may open this site full screen.
-// Fingerprints are public. The first is the upload key from the PWABuilder package; add the
-// "App signing key" SHA-256 from Play Console (Test and release → App integrity) once the first
-// build is uploaded, here or as a comma-separated PLAY_CERT_FINGERPRINTS variable on the worker.
+// Fingerprints are public. More can be added here or as a comma-separated
+// PLAY_CERT_FINGERPRINTS variable on the worker.
 const PLAY_PACKAGE = "com.luckybearcreations.fluidstudio";
 const PLAY_FINGERPRINTS = [
+  // Upload key (PWABuilder package).
   "A3:58:AD:BA:7F:0C:DF:D3:DB:89:2A:08:E7:D8:3F:59:A7:1A:7D:EB:ED:A7:49:DE:58:08:FE:A6:8E:8E:81:96",
+  // Google Play app signing key (Play Console → App signing): what installs from Play carry.
+  "52:9E:DB:95:7C:3F:A2:1E:34:8E:B8:F2:69:8A:86:C6:B8:0D:16:86:1C:DC:15:E2:A4:42:D6:4B:F2:64:6B:75",
 ];
 
 function assetLinks(env: AppEnv): Response {
