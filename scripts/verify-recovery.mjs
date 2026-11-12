@@ -140,7 +140,7 @@ for (const mode of ['flip', 'dirty', 'ring', 'dutch', 'swipe', 'open', 'bloom'])
       assert.equal(JSON.parse(Buffer.from(c, 'base64url')).scope, 'https://www.googleapis.com/auth/androidpublisher');
       return Response.json({ access_token: 'access', expires_in: 3600 });
     }
-    assert.ok(url.includes('/applications/com.luckybear.fluidstudio/purchases/products/pro_unlock/tokens/'), url);
+    assert.ok(url.includes('/applications/com.luckybearcreations.fluidstudio/purchases/products/pro_unlock/tokens/'), url);
     assert.equal(init.headers.Authorization, 'Bearer access');
     if (url.endsWith(':acknowledge')) return new Response(null, { status: 204 });
     if (url.endsWith(good)) return Response.json({ purchaseState: 0, acknowledgementState: 0 });
