@@ -72,9 +72,9 @@ Until all four are done, the Android app's Unlock button reports that the purcha
 Never show the Stripe link in the Play app: the code already hides it whenever Play Billing is present.
 
 ## 5. Custom domain (optional)
-As of November 2026 the app is served at fluidpour.luckybears.org. To serve it from another domain you own
+The app's home address is fluidpour.shopluckybears.com (`HOME_HOST` in `src/lib/useProSession.ts`). The older fluidpour.luckybears.org address still serves the app but sends visitors to the home address, because Pro is remembered per address. To serve it from another domain you own
 (for example one in your Cloudflare account): Cloudflare Dashboard → Workers & Pages →
-fluidpourstudio → Settings → Domains, then update the payment link redirect in step 3 to match.
+fluidpourstudio → Settings → Domains, then update `HOME_HOST` and the payment link redirect in step 3 to match.
 
 ## What's already done
 - GPU paint engine (WebGL2), with the old particle engine as a fallback (see WEBGL_ENGINE.md)

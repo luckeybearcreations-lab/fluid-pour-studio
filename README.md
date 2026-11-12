@@ -4,7 +4,7 @@ Local project name: `newfluidpourapp`
 
 A fluid-art studio for the web and Android. It models wet acrylic paint with material-dependent viscosity, flow, cohesion, pigment interaction, silicone cells, drying, tilt, spin, layered recipes, an on-device gallery, and print-scale PNG export.
 
-Live at https://fluidpour.luckybears.org (as of November 2026). Version numbers follow the Android build.
+Live at https://fluidpour.shopluckybears.com. The older address, fluidpour.luckybears.org, still serves the app but sends visitors to the new one. Version numbers follow the Android build.
 
 The pour system includes Ribbon, Splatter, Drip, Flip Cup, Dirty, Tree Ring, Dutch, Swipe, Open Cup, and Bloom techniques. Each cup layer can use its own amount, silicone ratio, and Fluid Acrylic, Heavy Body, Metallic, Pearl, Silicone Mix, Pouring Medium, or Gloss Medium behavior.
 

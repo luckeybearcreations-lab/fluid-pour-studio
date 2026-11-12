@@ -8,7 +8,7 @@ import StudioNotebook, { PourRecipe } from '@/components/StudioNotebook';
 import CanvasControls from '@/components/CanvasControls';
 import SpinDock from '@/components/SpinDock';
 import { PaywallModal } from '@/components/PaywallGate';
-import { useProSession, MANAGE_SUBSCRIPTION_URL } from '@/lib/useProSession';
+import { useProSession, MANAGE_SUBSCRIPTION_URL, HOME_HOST, homeAddress } from '@/lib/useProSession';
 import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine';
 import { PaintColor, DEFAULT_COLOR, PALETTE } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
@@ -58,6 +58,8 @@ const AppLayout: React.FC = () => {
   const [clipState, setClipState] = useState<'idle' | 'recording' | 'ready'>('idle');
   const [clip, setClip] = useState<Blob | null>(null);
   const stopClipRef = useRef<(() => void) | null>(null);
+  // Set when this is an old address and the visitor has pours or recipes saved here.
+  const [movedTo, setMovedTo] = useState<string | null>(null);
   const [holdTilt, setHoldTilt] = useState(false);
   const tiltRef = useRef(tilt);
   tiltRef.current = tilt;
@@ -110,6 +112,23 @@ const AppLayout: React.FC = () => {
     if (!hold) levelCanvas();
   };
   useEffect(() => () => cancelAnimationFrame(levelAnim.current), []);
+
+  // One home address. At any other address: visitors with nothing saved here go straight to
+  // the home address; visitors with saved pours or recipes stay (their saves live at this
+  // address) and see a notice instead.
+  useEffect(() => {
+    const home = homeAddress();
+    if (!home) return;
+    let saved = false;
+    try {
+      saved = ['lbfps_gallery_v2', 'lbfps_gallery_v1', 'lucky-bear-fluid-recipes-v1'].some(key => {
+        const raw = window.localStorage.getItem(key);
+        return Boolean(raw && raw !== '[]');
+      });
+    } catch { /* storage blocked: nothing can be saved here */ }
+    if (saved) setMovedTo(home);
+    else window.location.replace(home);
+  }, []);
 
   // Offline support. Skipped on localhost so development never serves stale files.
   useEffect(() => {
@@ -325,6 +344,11 @@ const AppLayout: React.FC = () => {
         </div>
       </header>
 
+      {movedTo && <div className="moved-banner" role="status">
+        <span>Fluid Studio has moved to {HOME_HOST}. Pours and recipes saved at this address stay here, so download the ones you want to keep before you switch.</span>
+        <a href={movedTo}>Go to the new address</a>
+      </div>}
+
       <div className="studio-body">
         <aside className={`control-rail ${sidebarOpen ? 'open' : ''}`}>
           <div className="rail-scroll">
@@ -374,7 +398,7 @@ const AppLayout: React.FC = () => {
 
       <GalleryPanel open={galleryOpen} items={gallery} loading={galleryLoading} offline={offline} syncing={syncing} onClose={() => setGalleryOpen(false)} onLoad={handleLoad} onDelete={handleDelete} onSync={handleSync} />
       <StudioNotebook open={notebookOpen} color={color} mode={pourMode} params={params} onClose={() => setNotebookOpen(false)} onLoad={loadRecipe} />
-      <PaywallModal open={paywallOpen} feature={paywallFeature} note={paywallFeature === 'save' ? `You have used your ${FREE_SAVES} free saves. Go Pro for unlimited saves, or delete a saved pour to make room.` : undefined} onClose={() => setPaywallOpen(false)} play={playApp ? { price: playPrice, onBuy: buyWithPlay, onRestore: restoreWithPlay } : undefined} />
+      <PaywallModal open={paywallOpen} feature={paywallFeature} note={paywallFeature === 'save' ? `You have used your ${FREE_SAVES} free saves. Go Pro for unlimited saves, or delete a saved pour to make room.` : undefined} onClose={() => setPaywallOpen(false)} movedTo={movedTo ?? undefined} play={playApp ? { price: playPrice, onBuy: buyWithPlay, onRestore: restoreWithPlay } : undefined} />
       {toast && <div className="studio-toast">{toast}</div>}
     </div>
   );

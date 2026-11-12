@@ -30,12 +30,16 @@ const StudioNotebook: React.FC<Props> = ({ open, color, mode, params, onClose, o
   const [note, setNote] = useState('');
 
   useEffect(() => {
-    try { setRecipes(JSON.parse(localStorage.getItem(KEY) || '[]')); } catch { setRecipes([]); }
+    // Skip anything that isn't a complete recipe, so one damaged entry can't take the app down.
+    try {
+      const saved: unknown = JSON.parse(localStorage.getItem(KEY) || '[]');
+      setRecipes(Array.isArray(saved) ? saved.filter((r): r is PourRecipe => Boolean(r && typeof r.name === 'string' && typeof r.color?.hex === 'string' && r.params && r.mode)) : []);
+    } catch { setRecipes([]); }
   }, []);
 
   const persist = (items: PourRecipe[]) => {
     setRecipes(items);
-    localStorage.setItem(KEY, JSON.stringify(items));
+    try { localStorage.setItem(KEY, JSON.stringify(items)); } catch { /* storage full or blocked: the recipe stays for this visit */ }
   };
   const save = () => {
     const recipe: PourRecipe = {

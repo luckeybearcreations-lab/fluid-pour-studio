@@ -3,6 +3,23 @@ import { buyPlayUnlock, playPrice, playService, restorePlayPurchase } from '@/li
 
 export const SUPPORT_EMAIL = 'luckeybearcreations@gmail.com';
 
+/**
+ * The one address the website lives at. Stripe sends buyers back here after
+ * checkout and Pro is remembered per address, so every other address that
+ * serves the app (an old domain, the workers.dev address) points people here.
+ * If the app moves, change this and the payment link's redirect together.
+ */
+export const HOME_HOST = 'fluidpour.shopluckybears.com';
+
+/** The same page at the home address, or null when this already is the home address (or a local or app build). */
+export function homeAddress(): string | null {
+  if (typeof window === 'undefined') return null;
+  const { hostname, pathname, search } = window.location;
+  const local = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.endsWith('.localhost') || hostname.endsWith('.test');
+  if (hostname === HOME_HOST || local) return null;
+  return `https://${HOME_HOST}${pathname}${search}`;
+}
+
 // Stripe customer portal login link (Stripe → Settings → Billing → Customer portal → "Launch customer portal").
 // Subscribers enter their email there and get a link to cancel or update their card.
 // If this is ever emptied, the app offers cancelling by email instead.
