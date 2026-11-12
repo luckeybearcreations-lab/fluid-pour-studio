@@ -69,8 +69,8 @@ In the Android app from Google Play, Pro is a one-time purchase handled by Googl
    from the live site with Google Play billing enabled. For each new build raise the version code,
    sign with the same upload key (`signing.keystore` from the first package: keep it and its
    passwords backed up and private), and upload the `.aab`.
-5. **App links.** The worker serves `/.well-known/assetlinks.json` (`worker/index.ts`). After the
-   first upload, copy the "App signing key" SHA-256 from Play Console → App integrity and add it to
+5. **App links.** The worker serves `/.well-known/assetlinks.json` (`worker/index.ts`). It lists
+   the upload key and the Google Play app signing key. If either key ever changes, update
    `PLAY_FINGERPRINTS`, or the app shows a browser address bar.
 
 Until all of these are done, the Android app's Unlock button reports that the purchase couldn't finish.
