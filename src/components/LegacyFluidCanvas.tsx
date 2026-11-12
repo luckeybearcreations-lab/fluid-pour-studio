@@ -12,6 +12,8 @@ export interface FluidCanvasHandle {
   loadSnapshot: (dataUrl: string) => void;
   undo: () => boolean;
   redo: () => boolean;
+  /** Starts one pour at a point (0..1 across and down the canvas), as if tapped there. GPU engine only. */
+  demoPour?: (x: number, y: number) => void;
 }
 
 export interface FluidCanvasProps {

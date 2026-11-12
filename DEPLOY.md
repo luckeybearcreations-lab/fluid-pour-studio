@@ -12,6 +12,7 @@ copy .env.example .env
 Edit `.env`:
 - `VITE_SUPABASE_URL` — your Supabase project URL (skip if not using cloud gallery yet)
 - `VITE_SUPABASE_ANON_KEY` — your Supabase anon key
+- `VITE_CLOUD_GALLERY` — leave unset. Set to `on` only once sign-in exists; without it every visitor shares one gallery.
 
 ## 2. Build and deploy
 ```powershell
@@ -48,7 +49,7 @@ To try it locally with `wrangler dev`, put the same two values in `dist/server/.
 (never commit that file).
 
 ## 4. Custom domain (optional)
-luckybears.org is no longer used. To serve the app from another domain you own
+As of November 2026 the app is served at fluidpour.luckybears.org. To serve it from another domain you own
 (for example one in your Cloudflare account): Cloudflare Dashboard → Workers & Pages →
 fluidpourstudio → Settings → Domains, then update the payment link redirect in step 3 to match.
 

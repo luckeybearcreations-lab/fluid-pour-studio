@@ -7,12 +7,15 @@ import GalleryPanel from '@/components/GalleryPanel';
 import StudioNotebook, { PourRecipe } from '@/components/StudioNotebook';
 import CanvasControls from '@/components/CanvasControls';
 import SpinDock from '@/components/SpinDock';
-import { PaywallModal, useProSession } from '@/components/PaywallGate';
+import { PaywallModal } from '@/components/PaywallGate';
+import { useProSession, MANAGE_SUBSCRIPTION_URL } from '@/lib/useProSession';
 import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine';
-import { PaintColor, DEFAULT_COLOR } from '@/lib/palette';
+import { PaintColor, DEFAULT_COLOR, PALETTE } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
 import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluidProject } from '@/lib/projectFile';
-import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen } from 'lucide-react';
+import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal } from 'lucide-react';
+
+const WELCOME_KEY = 'lbfs_welcomed_v1';
 
 const AppLayout: React.FC = () => {
   const isPro = useProSession(message => showToast(message));
@@ -32,7 +35,7 @@ const AppLayout: React.FC = () => {
   const [exportScale, setExportScale] = useState<1 | 2 | 4>(2);
   const [transparentExport, setTransparentExport] = useState(false);
   const [projectName, setProjectName] = useState('Untitled Fluid Pour');
-  const [artistName, setArtistName] = useState('Arthur Gustavo');
+  const [artistName, setArtistName] = useState('');
   const [notes, setNotes] = useState('');
   const [stats, setStats] = useState<{ particles: number; cells: number; unit?: 'particles' | 'percent' }>({ particles: 0, cells: 0 });
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -45,8 +48,10 @@ const AppLayout: React.FC = () => {
   const [syncing, setSyncing] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const toastTimer = useRef(0);
 
-  const showToast = (msg: string) => { setToast(msg); window.setTimeout(() => setToast(null), 2600); };
+  const showToast = (msg: string, ms = 2600) => { setToast(msg); window.clearTimeout(toastTimer.current); toastTimer.current = window.setTimeout(() => setToast(null), ms); };
   const refreshGallery = useCallback(async () => {
     setGalleryLoading(true);
     const { items, offline: off } = await fetchPours();
@@ -56,6 +61,28 @@ const AppLayout: React.FC = () => {
     setSidebarOpen(window.innerWidth >= 1024);
     refreshGallery();
   }, [refreshGallery]);
+
+  // Offline support. Skipped on localhost so development never serves stale files.
+  useEffect(() => {
+    if (!('serviceWorker' in navigator) || ['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  }, []);
+
+  // First visit: pour a small demo cup so the canvas isn't blank.
+  useEffect(() => {
+    let seen = true;
+    try { seen = Boolean(window.localStorage.getItem(WELCOME_KEY)); } catch { /* storage blocked: skip the demo */ }
+    if (seen || new URLSearchParams(window.location.search).has('checkout')) return;
+    const demoCup = ['cobalt', 'titanium', 'gold', 'crimson'].map(id => PALETTE.find(p => p.id === id)).filter(Boolean) as PaintColor[];
+    setCupColors(demoCup); setColor(demoCup[0]); setPourMode('flip');
+    const pour = window.setTimeout(() => {
+      canvasRef.current?.demoPour?.(0.5, 0.46);
+      try { window.localStorage.setItem(WELCOME_KEY, '1'); } catch { /* ignore */ }
+      showToast('A demo pour to start you off. Hold and drag to add paint, or tap Clear for a fresh canvas.', 7000);
+    }, 900);
+    const back = window.setTimeout(() => setPourMode('stream'), 1500);
+    return () => { window.clearTimeout(pour); window.clearTimeout(back); };
+  }, []);
 
   const requirePro = (feature: 'save' | 'export', action: () => void) => {
     if (isPro) { action(); return; }
@@ -124,10 +151,11 @@ const AppLayout: React.FC = () => {
     const project: FluidProjectData = {
       app: 'Lucky Bear Fluid Studio', version: 'recovery-2', projectName, artistName, notes,
       color, cupColors, tool, pourMode, params, tilt, spin, surface, exportScale,
-      transparentExport, canvasImage: snapshot.full, savedAt: new Date().toISOString(),
+      // The finished artwork is a Pro feature; free project files keep the recipe and settings.
+      transparentExport, canvasImage: isPro ? snapshot.full : '', savedAt: new Date().toISOString(),
     };
     downloadFluidProject(project);
-    showToast('Lucky Bear project downloaded');
+    showToast(isPro ? 'Lucky Bear project downloaded' : 'Recipe and settings downloaded. Pro also keeps the artwork.', isPro ? 2600 : 4500);
   };
   const handleLoadProject = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -193,14 +221,17 @@ const AppLayout: React.FC = () => {
         <div className="header-actions">
           <button onClick={handleUndo} className="action-button secondary compact" title="Undo last canvas action" aria-label="Undo last canvas action"><Undo2 /></button>
           <button onClick={handleRedo} className="action-button secondary compact" title="Redo canvas action" aria-label="Redo canvas action"><Redo2 /></button>
+          <button onClick={() => setMoreOpen(o => !o)} className="action-button secondary compact more-toggle" aria-label="More actions" aria-expanded={moreOpen} aria-controls="header-more"><MoreHorizontal /></button>
+          <div id="header-more" className={`header-more ${moreOpen ? 'open' : ''}`} onClick={() => setMoreOpen(false)}>
           <button onClick={surpriseMe} className="action-button secondary" title="Create a random studio recipe" aria-label="Surprise me with a recipe"><WandSparkles /><span className="action-label">Surprise</span></button>
           <button onClick={() => setNotebookOpen(true)} className="action-button secondary" aria-label="Open recipe lab"><BookOpen /><span className="action-label">Recipes</span></button>
           <button onClick={() => setGalleryOpen(true)} className="action-button secondary" aria-label="Open saved pours"><Images /><span className="action-label">Gallery</span>{gallery.length > 0 && <b>{gallery.length}</b>}</button>
           <button onClick={() => projectInputRef.current?.click()} className="action-button secondary" title="Open Lucky Bear project" aria-label="Open Lucky Bear project"><FolderOpen /><span className="action-label">Open</span></button>
           <button onClick={handleSaveProject} className="action-button secondary" title="Download Lucky Bear project" aria-label="Download Lucky Bear project"><FolderDown /><span className="action-label">Project</span></button>
           <button onClick={() => requirePro('export', () => canvasRef.current?.exportPNG(exportScale, transparentExport))} className="action-button secondary" title={`Export ${exportScale}× PNG`} aria-label={`Export ${exportScale}× PNG`}><Download /><span className="action-label">Export</span></button>
-          <button onClick={handleClear} className={`action-button secondary ${confirmClear ? 'danger' : ''}`} aria-label={confirmClear ? 'Confirm clear canvas' : 'Clear canvas'}><Trash2 /><span className="action-label">{confirmClear ? 'Confirm' : 'Clear'}</span></button>
-          <button onClick={() => requirePro('save', handleSave)} disabled={saving} className="action-button primary">{saving ? <Loader2 className="animate-spin" /> : <Save />}<span>{saving ? 'Saving' : isPro ? 'Save pour' : 'Save pour ✦'}</span></button>
+          <button onClick={event => { if (!confirmClear) event.stopPropagation(); handleClear(); }} className={`action-button secondary ${confirmClear ? 'danger' : ''}`} aria-label={confirmClear ? 'Confirm clear canvas' : 'Clear canvas'}><Trash2 /><span className="action-label">{confirmClear ? 'Confirm' : 'Clear'}</span></button>
+          </div>
+          <button onClick={() => requirePro('save', handleSave)} disabled={saving} className="action-button primary">{saving ? <Loader2 className="animate-spin" /> : <Save />}<span>{saving ? 'Saving' : <>Save<span className="save-long"> pour</span>{!isPro && ' ✦'}</>}</span></button>
           <input ref={projectInputRef} className="sr-only" type="file" accept=".json,.luckybear.json,application/json" onChange={handleLoadProject} />
         </div>
       </header>
@@ -225,6 +256,7 @@ const AppLayout: React.FC = () => {
             <SpinDock spin={spin} onSpinChange={setSpin} frameRef={frameRef} />
           </div>
           <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
+          <div className="stage-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a>{isPro && <a href={MANAGE_SUBSCRIPTION_URL}>Manage subscription</a>}</div>
         </main>
       </div>
 

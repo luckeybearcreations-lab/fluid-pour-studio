@@ -2,7 +2,9 @@
 
 Local project name: `newfluidpourapp`
 
-An isolated local recovery of the Lucky Bear fluid-art simulator. The studio models wet acrylic paint with material-dependent viscosity, flow, cohesion, pigment interaction, silicone cells, drying, tilt, spin, layered recipes, local/cloud-optional gallery storage, and print-scale PNG export.
+A fluid-art studio for the web and Android. It models wet acrylic paint with material-dependent viscosity, flow, cohesion, pigment interaction, silicone cells, drying, tilt, spin, layered recipes, an on-device gallery, and print-scale PNG export.
+
+Live at https://fluidpour.luckybears.org (as of November 2026). Version numbers follow the Android build.
 
 The pour system includes Ribbon, Splatter, Drip, Flip Cup, Dirty, Tree Ring, Dutch, Swipe, Open Cup, and Bloom techniques. Each cup layer can use its own amount, silicone ratio, and Fluid Acrylic, Heavy Body, Metallic, Pearl, Silicone Mix, Pouring Medium, or Gloss Medium behavior.
 
@@ -18,15 +20,21 @@ Validation:
 ```powershell
 npm run build
 npm run lint
+npm run typecheck
+npm test
 ```
 
-## Recovery boundaries
+## How it fits together
 
-- This repository is local-only and has no deployment remote.
-- Production hosting configuration and credentials are deliberately absent.
-- ShopLuckyBears, LuckyHustlePro, ArtPolisher, Lucky Bear Universe, commerce, NFC, Stockroom, and unrelated starter UI code are excluded.
-- Cloud gallery support is optional and activates only when local environment variables are deliberately supplied.
-- See `RECOVERY_PROVENANCE.md` for the exact source commit, exclusions, and branch relationships.
-- See `FEATURE_CONSOLIDATION.md` for the cross-version feature evidence and implementation map.
+- `app/`: the pages (the studio, `/privacy`, `/terms`).
+- `src/`: the studio UI and both paint engines (see `WEBGL_ENGINE.md`).
+- `worker/`: the Cloudflare worker. `worker/pro.ts` checks Pro subscriptions with Stripe.
+- `public/`: icons, the web app manifest, and `sw.js` (offline support).
 
-Nothing in this repository is authorized for deployment or publication without a separate approval.
+## Things to know
+
+- Deploying is described in `DEPLOY.md`. Changes go through a pull request first.
+- Pro is tied to the browser it was bought in. There is no sign-in yet.
+- The cloud gallery is off (`VITE_CLOUD_GALLERY` unset) because without sign-in every visitor would share one list of pours. Pours are saved on the device.
+- To let subscribers cancel on their own, switch on the Stripe customer portal login link and paste its address into `STRIPE_PORTAL_URL` in `src/lib/useProSession.ts`. Until then the app offers cancelling by email.
+- `RECOVERY_PROVENANCE.md` and `FEATURE_CONSOLIDATION.md` record where this code came from.
