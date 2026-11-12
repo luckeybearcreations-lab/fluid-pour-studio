@@ -18,7 +18,7 @@ import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles,
 const WELCOME_KEY = 'lbfs_welcomed_v1';
 
 const AppLayout: React.FC = () => {
-  const isPro = useProSession(message => showToast(message));
+  const { pro: isPro, playApp, playPrice, buyWithPlay, restoreWithPlay } = useProSession(message => showToast(message, 5000));
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState<'save' | 'export'>('save');
   const canvasRef = useRef<FluidCanvasHandle>(null);
@@ -256,7 +256,7 @@ const AppLayout: React.FC = () => {
             <SpinDock spin={spin} onSpinChange={setSpin} frameRef={frameRef} />
           </div>
           <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
-          <div className="stage-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a>{isPro && <a href={MANAGE_SUBSCRIPTION_URL}>Manage subscription</a>}</div>
+          <div className="stage-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a>{isPro && !playApp && <a href={MANAGE_SUBSCRIPTION_URL}>Manage subscription</a>}</div>
         </main>
       </div>
 
@@ -270,7 +270,7 @@ const AppLayout: React.FC = () => {
 
       <GalleryPanel open={galleryOpen} items={gallery} loading={galleryLoading} offline={offline} syncing={syncing} onClose={() => setGalleryOpen(false)} onLoad={handleLoad} onDelete={handleDelete} onSync={handleSync} />
       <StudioNotebook open={notebookOpen} color={color} mode={pourMode} params={params} onClose={() => setNotebookOpen(false)} onLoad={loadRecipe} />
-      <PaywallModal open={paywallOpen} feature={paywallFeature} onClose={() => setPaywallOpen(false)} />
+      <PaywallModal open={paywallOpen} feature={paywallFeature} onClose={() => setPaywallOpen(false)} play={playApp ? { price: playPrice, onBuy: buyWithPlay, onRestore: restoreWithPlay } : undefined} />
       {toast && <div className="studio-toast">{toast}</div>}
     </div>
   );

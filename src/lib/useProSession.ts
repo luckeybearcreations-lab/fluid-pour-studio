@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { buyPlayUnlock, playPrice, playService, restorePlayPurchase } from '@/lib/playBilling';
 
 export const SUPPORT_EMAIL = 'luckeybearcreations@gmail.com';
 
@@ -9,12 +10,25 @@ const STRIPE_PORTAL_URL = 'https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu
 export const MANAGE_SUBSCRIPTION_URL = STRIPE_PORTAL_URL
   || `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Cancel my Fluid Studio Pro subscription')}`;
 
+export interface ProSession {
+  pro: boolean;
+  /** True inside the Android app from Google Play, where Pro is sold by Google Play instead of Stripe. */
+  playApp: boolean;
+  /** Google Play's price for the one-time unlock, once known. */
+  playPrice: string | null;
+  buyWithPlay: () => Promise<void>;
+  restoreWithPlay: () => Promise<void>;
+}
+
 /**
  * Asks the server whether this browser has Pro, and claims Pro when Stripe
  * sends the buyer back after checkout (/?checkout={CHECKOUT_SESSION_ID}).
+ * In the Google Play app it also restores and sells the one-time unlock.
  */
-export function useProSession(onNotice?: (message: string) => void): boolean {
+export function useProSession(onNotice?: (message: string) => void): ProSession {
   const [pro, setPro] = useState(false);
+  const [playApp, setPlayApp] = useState(false);
+  const [price, setPrice] = useState<string | null>(null);
   const noticeRef = useRef(onNotice);
   noticeRef.current = onNotice;
 
@@ -49,5 +63,28 @@ export function useProSession(onNotice?: (message: string) => void): boolean {
       });
   }, []);
 
-  return pro;
+  // Google Play app: show Play's price, and bring Pro back if this Google account already owns it.
+  useEffect(() => {
+    let cancelled = false;
+    playService().then(async play => {
+      if (!play || cancelled) return;
+      setPlayApp(true);
+      playPrice().then(p => { if (!cancelled) setPrice(p); });
+      if (await restorePlayPurchase() && !cancelled) setPro(true);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const buyWithPlay = useCallback(async () => {
+    const result = await buyPlayUnlock();
+    if (result === 'bought') { setPro(true); noticeRef.current?.('Pro unlocked. Thank you!'); }
+    else if (result === 'failed') noticeRef.current?.(`We couldn't finish the purchase. If you were charged, tap Restore purchase, or email ${SUPPORT_EMAIL}.`);
+  }, []);
+
+  const restoreWithPlay = useCallback(async () => {
+    if (await restorePlayPurchase()) { setPro(true); noticeRef.current?.('Pro restored.'); }
+    else noticeRef.current?.('No Pro purchase was found on this Google account.');
+  }, []);
+
+  return { pro, playApp, playPrice: price, buyWithPlay, restoreWithPlay };
 }

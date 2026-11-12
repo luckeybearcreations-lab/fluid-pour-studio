@@ -18,10 +18,11 @@ export default function TermsPage() {
 
         <h2>Fluid Studio Pro</h2>
         <ul>
-          <li>Pro is a subscription billed at $4.99 per month through Stripe until you cancel.</li>
+          <li>On the website, Pro is a subscription billed at $4.99 per month through Stripe until you cancel.</li>
+          <li>In the Android app from Google Play, Pro is a one-time purchase through Google Play. It is not a subscription, and it restores on any phone signed in to the Google account that bought it. Refunds for Google Play purchases follow Google Play's refund policy.</li>
           <li>Pro adds saving pours to your gallery, PNG export at 1×, 2× and 4×, and keeping the artwork inside project files.</li>
-          <li>Pro is tied to the browser or device you subscribe in. It does not currently carry over to other devices.</li>
-          <li>You can cancel at any time from the <a href="https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu1sQ00">subscription page</a> (enter the email you subscribed with), or by emailing <a href="mailto:luckeybearcreations@gmail.com">luckeybearcreations@gmail.com</a>. Pro stays active until the end of the period you have paid for.</li>
+          <li>A website subscription is tied to the browser you subscribe in. It does not currently carry over to other devices or to the Android app.</li>
+          <li>You can cancel a website subscription at any time from the <a href="https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu1sQ00">subscription page</a> (enter the email you subscribed with), or by emailing <a href="mailto:luckeybearcreations@gmail.com">luckeybearcreations@gmail.com</a>. Pro stays active until the end of the period you have paid for.</li>
           <li>If something went wrong with a charge, email us and we will sort it out.</li>
         </ul>
 
