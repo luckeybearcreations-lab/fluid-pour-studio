@@ -119,7 +119,7 @@ export function normalizeFluidProject(value: unknown): FluidProjectData {
     app: 'Lucky Bear Fluid Studio',
     version: 'recovery-2',
     projectName: text(item.projectName, 'Recovered Fluid Pour'),
-    artistName: text(item.artistName, 'Arthur Gustavo'),
+    artistName: text(item.artistName, ''),
     notes: text(item.notes, ''),
     color,
     cupColors: cupColors.length ? cupColors : [color],

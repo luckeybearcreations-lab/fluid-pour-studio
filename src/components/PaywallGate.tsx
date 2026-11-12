@@ -2,7 +2,7 @@
  * PaywallGate — wraps save and export actions behind a Pro check.
  *
  * Free tier: unlimited pouring, unlimited undo/redo, project file open/download.
- * Pro ($4.99/mo): Save to gallery, export PNG (1×/2×/4×), cloud sync.
+ * Pro ($4.99/mo): Save to gallery, export PNG (1×/2×/4×), artwork inside project files.
  *
  * Payment goes to Stripe. The payment link sends buyers back to
  * /?checkout={CHECKOUT_SESSION_ID}; the worker (worker/pro.ts) confirms the
@@ -10,7 +10,8 @@
  * subscription once a day.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
+import { MANAGE_SUBSCRIPTION_URL } from '@/lib/useProSession';
 import { X, Sparkles, Lock } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -20,51 +21,6 @@ import { X, Sparkles, Lock } from 'lucide-react';
 const STRIPE_LINK =
   'https://buy.stripe.com/9B6aEY8QIdrP0iL4P21sQ0c';
 const PRO_MONTHLY_PRICE = '$4.99 / month';
-const SUPPORT_EMAIL = 'luckeybearcreations@gmail.com';
-
-// ---------------------------------------------------------------------------
-// Hook: asks the server whether this browser has Pro, and claims Pro when
-// Stripe sends the buyer back after checkout.
-// ---------------------------------------------------------------------------
-export function useProSession(onNotice?: (message: string) => void): boolean {
-  const [pro, setPro] = useState(false);
-  const noticeRef = useRef(onNotice);
-  noticeRef.current = onNotice;
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const checkout = params.get('checkout');
-    if (checkout) {
-      // Clean the URL so a refresh doesn't claim again
-      params.delete('checkout');
-      const query = params.toString();
-      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
-    }
-    const request = checkout
-      ? fetch('/api/pro/claim', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_id: checkout }),
-        })
-      : fetch('/api/pro/status', { cache: 'no-store' });
-    request
-      .then(res => res.json().catch(() => ({})))
-      .then((data: { pro?: boolean }) => {
-        if (data.pro) {
-          setPro(true);
-          if (checkout) noticeRef.current?.('Pro unlocked. Thanks for subscribing!');
-        } else if (checkout) {
-          noticeRef.current?.(`We couldn't confirm your payment yet. Refresh in a minute, or email ${SUPPORT_EMAIL}.`);
-        }
-      })
-      .catch(() => {
-        if (checkout) noticeRef.current?.(`We couldn't reach the server to confirm your payment. Refresh to try again.`);
-      });
-  }, []);
-
-  return pro;
-}
-
 // ---------------------------------------------------------------------------
 // Modal component
 // ---------------------------------------------------------------------------
@@ -79,7 +35,7 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
 
   const featureLabel =
     feature === 'save'
-      ? 'save pours to your gallery and sync across devices'
+      ? 'save pours to your gallery'
       : 'export your artwork as a print-ready PNG';
 
   const handleUpgrade = () => {
@@ -101,15 +57,15 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
         <h2 className="paywall-title">Go Pro to {featureLabel}</h2>
 
         <p className="paywall-desc">
-          Pour freely — forever free. Unlock gallery saves, cloud sync,
-          and high-res PNG exports with a Pro subscription.
+          Pouring is free, always. Pro adds gallery saves and
+          high-res PNG exports.
         </p>
 
         <ul className="paywall-perks">
           <li><Sparkles size={14} /> Save pours to your personal gallery</li>
-          <li><Sparkles size={14} /> Cloud sync across devices</li>
+          <li><Sparkles size={14} /> Keep the artwork inside your project files</li>
           <li><Sparkles size={14} /> 1×, 2×, and 4× print-ready PNG export</li>
-          <li><Sparkles size={14} /> Cancel any time — no commitment</li>
+          <li><Sparkles size={14} /> Cancel any time</li>
         </ul>
 
         <button className="paywall-cta" onClick={handleUpgrade}>
@@ -117,7 +73,8 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
         </button>
 
         <p className="paywall-fine">
-          Secure checkout via Stripe. Cancel any time from your account.
+          Secure checkout via Stripe. Pro stays with the browser you buy it in.{' '}
+          <a href={MANAGE_SUBSCRIPTION_URL}>Manage or cancel</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>
         </p>
       </div>
     </div>

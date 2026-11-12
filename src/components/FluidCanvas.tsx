@@ -201,6 +201,11 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       directorRef.current?.cancel();
       return engineRef.current?.redo() ?? false;
     },
+    demoPour: (x: number, y: number) => {
+      const director = directorRef.current;
+      if (!director || director.active) return;
+      if (director.pointerDown(-1, x, y, propsRef.current)) director.pointerUp(-1);
+    },
   }), []);
 
   const pointOf = (e: React.PointerEvent) => {

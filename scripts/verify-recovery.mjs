@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { access, readFile, readdir } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { build } from 'esbuild';
 
@@ -21,7 +22,7 @@ async function sourceFiles(folder) {
   return files;
 }
 
-const scanRoots = ['app', 'src', 'worker', 'build', 'scripts'].map(folder => path.join(root, folder));
+const scanRoots = ['app', 'src', 'worker', 'build', 'scripts'].map(folder => path.join(root, folder)).filter(existsSync);
 const files = (await Promise.all(scanRoots.map(sourceFiles))).flat();
 const banned = [
   ['Sites project identifier', /appgprj_[a-z0-9]+/i],
@@ -29,7 +30,8 @@ const banned = [
   ['hard-coded cloud endpoint', /databasepad\.com/i],
   ['hard-coded JWT', /eyJhbGciOi/i],
   ['ShopLuckyBears production worker', /shopluckybears-launch-direct/i],
-  ['commerce fulfillment wiring', /PRINTIFY_AUTO_FULFILL|STRIPE_SECRET/i],
+  ['commerce fulfillment wiring', /PRINTIFY_AUTO_FULFILL/i],
+  ['hard-coded Stripe key', /\b(?:sk|rk)_(?:live|test)_[A-Za-z0-9]{10,}/],
 ];
 
 for (const file of files) {
@@ -54,7 +56,9 @@ const legacyFiles = [
   'C:/Users/Michael/Downloads/luckyapp6/Loaded Lucky Bear Project.luckybear (1).json',
 ];
 
-for (const fixture of legacyFiles) {
+// These saved projects live on the owner's PC; the check is skipped anywhere else.
+const fixtures = legacyFiles.filter(existsSync);
+for (const fixture of fixtures) {
   const raw = JSON.parse(await readFile(fixture, 'utf8'));
   const project = normalizeFluidProject(raw);
   assert.equal(project.version, 'recovery-2');
@@ -80,6 +84,7 @@ assert.equal(current.transparentExport, true);
 assert.deepEqual(current.tilt, { x: 0.4, y: -0.2 });
 assert.equal(current.color.material, 'metallic');
 assert.equal(current.cupColors[0].amount, 20);
+assert.equal(current.artistName, '', 'a project without an artist must not be given one');
 for (const value of Object.values(current.params)) assert.ok(value >= 0 && value <= 1);
 
 const legacyRc3 = normalizeFluidProject({
@@ -112,5 +117,5 @@ for (const mode of ['flip', 'dirty', 'ring', 'dutch', 'swipe', 'open', 'bloom'])
 }
 
 console.log(`Recovery isolation verified across ${files.length} source/config files.`);
-console.log(`Legacy project compatibility verified with ${legacyFiles.length} saved projects.`);
+console.log(fixtures.length ? `Legacy project compatibility verified with ${fixtures.length} saved projects.` : 'Legacy saved-project fixtures not found on this machine: skipped.');
 console.log('Material, pigment-mixing, and seven complete cup-pour modes verified.');

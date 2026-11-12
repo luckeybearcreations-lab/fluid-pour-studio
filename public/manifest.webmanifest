@@ -1,24 +1,22 @@
 {
+  "id": "/",
   "name": "Lucky Bear Fluid Studio",
   "short_name": "Fluid Studio",
-  "description": "Pour, tilt, comb, and save expressive fluid artwork.",
+  "description": "Pour, tilt and spin real-feeling acrylic paint on your phone.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#141816",
   "theme_color": "#141816",
+  "categories": ["art", "entertainment", "lifestyle"],
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshot-phone.jpg", "sizes": "1080x2400", "type": "image/jpeg", "form_factor": "narrow", "label": "Pouring paint on a phone" },
+    { "src": "/screenshot-wide.jpg", "sizes": "1920x1080", "type": "image/jpeg", "form_factor": "wide", "label": "The full studio on a large screen" }
   ]
 }
