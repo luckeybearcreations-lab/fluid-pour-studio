@@ -216,7 +216,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 @media (max-width: 700px) { .more-backdrop { display: block; position: fixed; inset: 0; z-index: 55; } }
 /* Finger-sized controls on touch layouts. */
 @media (max-width: 1023px) {
-  .segmented-control button, .spin-buttons button, .spin-presets button, .surface-options button, .export-options button, .cup-reset, .movement-label button, .cup-layers button, .spin-dock-buttons button { min-height: 40px; }
+  .segmented-control button, .spin-buttons button, .spin-presets button, .surface-options button, .export-options button, .cup-reset, .cup-summary button, .movement-label button, .spin-dock-buttons button { min-height: 40px; }
+  .icon-button, .spin-dock-head button { width: 40px; height: 40px; }
   .movement-label button { padding: 0 8px; }
 }
 @media (max-width: 520px) { .paint-wells { grid-template-columns: repeat(6, 1fr); } }
@@ -230,3 +231,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 .clip-ready button svg { width: 16px; height: 16px; }
 @media (max-width: 420px) { .clip-ready > span { display: none; } }
 .paywall-note { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: rgba(227,183,111,.1); color: #f0c77f; font-size: 13px; line-height: 1.5; }
+/* Notice shown at an old address once the app has moved. */
+.moved-banner { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; padding: 10px 14px; background: #2a2416; color: #f0c77f; font: 500 13px/1.45 Manrope, system-ui, sans-serif; text-align: center; }
+.moved-banner a { flex: none; padding: 8px 14px; border-radius: 9px; background: #e3b76f; color: #141816; font-weight: 700; text-decoration: none; }

@@ -31,13 +31,15 @@ interface PaywallModalProps {
   open: boolean;
   feature: 'save' | 'export';
   onClose: () => void;
+  /** Set at an old address: Pro can only be bought and kept at the home address. */
+  movedTo?: string;
   /** An extra line above the button, for example why the paywall opened. */
   note?: string;
   /** Set inside the Google Play app: Pro is sold by Google Play as a one-time unlock. */
   play?: { price: string | null; onBuy: () => Promise<void>; onRestore: () => Promise<void> };
 }
 
-export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClose, play, note }) => {
+export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClose, play, note, movedTo }) => {
   const [busy, setBusy] = React.useState(false);
   if (!open) return null;
 
@@ -47,6 +49,10 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
       : 'export your artwork as a print-ready PNG';
 
   const handleUpgrade = async () => {
+    if (movedTo && !play) {
+      window.location.href = movedTo;
+      return;
+    }
     if (!play) {
       // The payment link itself redirects back here with the checkout id.
       window.location.href = STRIPE_LINK;
@@ -83,9 +89,10 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
         </ul>
 
         {note && <p className="paywall-note">{note}</p>}
+        {movedTo && !play && <p className="paywall-note">Fluid Studio has moved. Pro is bought and kept at the new address, so start there.</p>}
 
         <button className="paywall-cta" onClick={handleUpgrade} disabled={busy}>
-          {play ? `Unlock Pro — ${play.price ?? 'one-time purchase'}` : `Start Pro — ${PRO_MONTHLY_PRICE}`}
+          {play ? `Unlock Pro — ${play.price ?? 'one-time purchase'}` : movedTo ? 'Continue at the new address' : `Start Pro — ${PRO_MONTHLY_PRICE}`}
         </button>
 
         {play ? (
