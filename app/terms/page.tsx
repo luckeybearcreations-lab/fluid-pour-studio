@@ -21,7 +21,7 @@ export default function TermsPage() {
           <li>Pro is a subscription billed at $4.99 per month through Stripe until you cancel.</li>
           <li>Pro adds saving pours to your gallery, PNG export at 1×, 2× and 4×, and keeping the artwork inside project files.</li>
           <li>Pro is tied to the browser or device you subscribe in. It does not currently carry over to other devices.</li>
-          <li>You can cancel at any time by emailing <a href="mailto:luckeybearcreations@gmail.com?subject=Cancel%20my%20Fluid%20Studio%20Pro%20subscription">luckeybearcreations@gmail.com</a>. Pro stays active until the end of the period you have paid for.</li>
+          <li>You can cancel at any time from the <a href="https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu1sQ00">subscription page</a> (enter the email you subscribed with), or by emailing <a href="mailto:luckeybearcreations@gmail.com">luckeybearcreations@gmail.com</a>. Pro stays active until the end of the period you have paid for.</li>
           <li>If something went wrong with a charge, email us and we will sort it out.</li>
         </ul>
 

@@ -33,7 +33,7 @@ export default function PrivacyPage() {
         <h2>Your choices</h2>
         <ul>
           <li>To delete your saved pours and settings, clear the app's data in your browser or device settings.</li>
-          <li>To cancel Pro, or to ask what we hold about your subscription or have it deleted, email us.</li>
+          <li>To cancel Pro, use the <a href="https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu1sQ00">subscription page</a>. To ask what we hold about your subscription, or to have it deleted, email us.</li>
         </ul>
 
         <h2>Changes</h2>

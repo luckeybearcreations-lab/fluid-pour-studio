@@ -3,8 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 export const SUPPORT_EMAIL = 'luckeybearcreations@gmail.com';
 
 // Stripe customer portal login link (Stripe → Settings → Billing → Customer portal → "Launch customer portal").
-// Leave empty until it is switched on; the app then offers cancelling by email instead.
-const STRIPE_PORTAL_URL = '';
+// Subscribers enter their email there and get a link to cancel or update their card.
+// If this is ever emptied, the app offers cancelling by email instead.
+const STRIPE_PORTAL_URL = 'https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu1sQ00';
 export const MANAGE_SUBSCRIPTION_URL = STRIPE_PORTAL_URL
   || `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent('Cancel my Fluid Studio Pro subscription')}`;
 

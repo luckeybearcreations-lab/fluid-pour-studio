@@ -36,5 +36,5 @@ npm test
 - Deploying is described in `DEPLOY.md`. Changes go through a pull request first.
 - Pro is tied to the browser it was bought in. There is no sign-in yet.
 - The cloud gallery is off (`VITE_CLOUD_GALLERY` unset) because without sign-in every visitor would share one list of pours. Pours are saved on the device.
-- To let subscribers cancel on their own, switch on the Stripe customer portal login link and paste its address into `STRIPE_PORTAL_URL` in `src/lib/useProSession.ts`. Until then the app offers cancelling by email.
+- Subscribers cancel through the Stripe customer portal link in `STRIPE_PORTAL_URL` (`src/lib/useProSession.ts`), which uses the "Lucky Bear Fluid Studio" portal configuration in Stripe.
 - `RECOVERY_PROVENANCE.md` and `FEATURE_CONSOLIDATION.md` record where this code came from.
