@@ -33,6 +33,7 @@ export interface ProSession {
   playApp: boolean;
   /** Google Play's price for the one-time unlock, once known. */
   playPrice: string | null;
+  refreshPlayPrice: () => void;
   buyWithPlay: () => Promise<void>;
   restoreWithPlay: () => Promise<void>;
 }
@@ -86,7 +87,15 @@ export function useProSession(onNotice?: (message: string) => void): ProSession 
     playService().then(async play => {
       if (!play || cancelled) return;
       setPlayApp(true);
-      playPrice().then(p => { if (!cancelled) setPrice(p); });
+      // Google Play can be slow to answer right after the app opens, so ask again a few times.
+      void (async () => {
+        for (const wait of [0, 2000, 6000, 15000]) {
+          if (wait) await new Promise(resolve => setTimeout(resolve, wait));
+          if (cancelled) return;
+          const p = await playPrice();
+          if (p) { if (!cancelled) setPrice(p); return; }
+        }
+      })();
       if (await restorePlayPurchase() && !cancelled) setPro(true);
     });
     return () => { cancelled = true; };
@@ -103,5 +112,10 @@ export function useProSession(onNotice?: (message: string) => void): ProSession 
     else noticeRef.current?.('No Pro purchase was found on this Google account.');
   }, []);
 
-  return { pro, playApp, playPrice: price, buyWithPlay, restoreWithPlay };
+  // Asked again when the Pro screen opens, in case the price never arrived.
+  const refreshPlayPrice = useCallback(() => {
+    void playPrice().then(p => { if (p) setPrice(p); });
+  }, []);
+
+  return { pro, playApp, playPrice: price, refreshPlayPrice, buyWithPlay, restoreWithPlay };
 }

@@ -23,8 +23,9 @@ const FREE_SAVES = 3;
 const CLIP_SECONDS = 8;
 
 const AppLayout: React.FC = () => {
-  const { pro: isPro, playApp, playPrice, buyWithPlay, restoreWithPlay } = useProSession(message => showToast(message, 5000));
+  const { pro: isPro, playApp, playPrice, refreshPlayPrice, buyWithPlay, restoreWithPlay } = useProSession(message => showToast(message, 5000));
   const [paywallOpen, setPaywallOpen] = useState(false);
+  useEffect(() => { if (paywallOpen && playApp && !playPrice) refreshPlayPrice(); }, [paywallOpen, playApp, playPrice, refreshPlayPrice]);
   const [paywallFeature, setPaywallFeature] = useState<'save' | 'export'>('save');
   const canvasRef = useRef<FluidCanvasHandle>(null);
   const frameRef = useRef<HTMLDivElement>(null);
