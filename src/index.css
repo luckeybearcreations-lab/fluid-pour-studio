@@ -199,3 +199,24 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 .paywall-link { padding: 0; border: 0; background: none; color: #9aa197; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .paywall-link:hover { color: #f0c77f; }
 .paywall-cta:disabled { opacity: .6; cursor: default; transform: none; }
+
+/* Always-visible canvas controls: step back, level, stop. */
+.canvas-quick { position: absolute; z-index: 6; left: 18px; bottom: 18px; display: flex; gap: 8px; }
+.canvas-quick button { height: 44px; min-width: 44px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(23,28,25,.9); color: #d9dcd4; font: 600 12px Manrope, system-ui, sans-serif; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.35); backdrop-filter: blur(6px); }
+.canvas-quick button svg { width: 18px; height: 18px; }
+.canvas-quick button:hover { color: #f0c77f; border-color: rgba(227,183,111,.5); }
+.canvas-quick button.alert { border-color: rgba(227,183,111,.65); color: #f0c77f; }
+.canvas-paused { position: absolute; z-index: 6; left: 50%; top: 18px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; background: rgba(20,24,22,.88); color: #f0c77f; font: 600 12px Manrope, system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
+.canvas-paused svg { width: 14px; height: 14px; }
+.hold-tilt { margin-top: 9px; display: flex; align-items: center; gap: 8px; color: #b9bdb7; font-size: 11px; cursor: pointer; }
+.hold-tilt input { width: 16px; height: 16px; accent-color: #e3b76f; }
+@media (max-width: 700px) { .canvas-quick { left: 10px; bottom: 10px; } }
+/* Tapping anywhere outside the More menu closes it. */
+.more-backdrop { display: none; }
+@media (max-width: 700px) { .more-backdrop { display: block; position: fixed; inset: 0; z-index: 55; } }
+/* Finger-sized controls on touch layouts. */
+@media (max-width: 1023px) {
+  .segmented-control button, .spin-buttons button, .spin-presets button, .surface-options button, .export-options button, .cup-reset, .movement-label button, .cup-layers button, .spin-dock-buttons button { min-height: 40px; }
+  .movement-label button { padding: 0 8px; }
+}
+@media (max-width: 520px) { .paint-wells { grid-template-columns: repeat(6, 1fr); } }

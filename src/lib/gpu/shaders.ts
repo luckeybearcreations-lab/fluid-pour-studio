@@ -581,12 +581,20 @@ void main () {
   vec3 base = uBase * (1.0 - uWeave * 0.07 * weave);
   // Soft studio light from the top left, like the classic canvas look.
   base *= mix(1.03, 0.93, (vUv.x + 1.0 - vUv.y) * 0.5);
+  // Paint has thickness: it shades the bare canvas on the side away from the light.
+  float lit = clamp(texture(uDye, vUv + vec2(-0.35, 0.55) * uDyeTexel * 6.0).a, 0.0, 1.0);
+  base *= 1.0 - 0.2 * lit * (1.0 - a);
   vec3 col = uTransparent == 1 ? paint : mix(base, paint, a);
 
+  // Surface shape from two scales: fine ripples between colors, plus the broad
+  // rounded body of the paint so pools read as raised and wet, not flat.
   vec2 e = uDyeTexel * 1.5;
+  vec2 e2 = uDyeTexel * 5.0;
   float hx = height(vUv + vec2(e.x, 0.0)) - height(vUv - vec2(e.x, 0.0));
   float hy = height(vUv + vec2(0.0, e.y)) - height(vUv - vec2(0.0, e.y));
-  vec3 n = normalize(vec3(-hx * 4.0, -hy * 4.0, 1.0));
+  float bx = height(vUv + vec2(e2.x, 0.0)) - height(vUv - vec2(e2.x, 0.0));
+  float by = height(vUv + vec2(0.0, e2.y)) - height(vUv - vec2(0.0, e2.y));
+  vec3 n = normalize(vec3(-(hx * 4.0 + bx * 1.5), -(hy * 4.0 + by * 1.5), 1.0));
   vec3 L = normalize(vec3(-0.35, 0.55, 1.0));
   vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
   float diff = clamp(dot(n, L), 0.0, 1.0);
@@ -608,14 +616,23 @@ void main () {
   vec3 irid = 0.5 + 0.5 * cos(6.2831 * (vec3(0.0, 0.33, 0.67) + ang));
   col = mix(col, col * 0.75 + irid * irid * 0.35, pearl * 0.55);
 
-  col *= 0.9 + 0.1 * diff;
-  // Wet paint is glossier than dry paint.
+  // Form shading: slopes facing the light lift, slopes facing away fall off.
+  col *= mix(1.0, 0.84 + 0.19 * diff, a);
+  // Wet paint is richer in color and glossier than dry paint.
+  float lum = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(vec3(lum), col, 1.0 + 0.14 * a * wet);
   float gloss = uGloss * mix(0.5, 1.0, wet);
-  col += vec3(1.0) * spec * gloss * 0.5 * a;
+  // A tight highlight (tinted by the paint on metallics) under a softer clear-coat sheen.
+  vec3 specTint = mix(vec3(1.0), paint * 1.3 + 0.25, metal * 0.7);
+  float coat = pow(clamp(dot(n, H), 0.0, 1.0), 28.0);
+  col += specTint * spec * gloss * 0.6 * a;
+  col += vec3(1.0) * coat * gloss * 0.09 * a * wet;
   if (uTransparent == 0) {
     float sheen = smoothstep(0.9, 0.0, length((vUv - vec2(0.3, 0.75)) * vec2(uAspect, 1.0)));
     col += vec3(1.0) * sheen * 0.03 * uGloss;
   }
   col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  // A touch of noise keeps smooth blends from showing bands on phone screens.
+  col += (hash12(vUv * uPixels + 0.37) - 0.5) / 255.0;
   fragColor = vec4(col, uTransparent == 1 ? a : 1.0);
 }`;

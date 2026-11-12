@@ -107,6 +107,12 @@ interface Snapshot {
   props: Target;
 }
 
+/** A saved moment the painting can be stepped back to, and when it was saved. */
+interface RewindPoint {
+  snap: Snapshot;
+  time: number;
+}
+
 interface Format {
   internal: number;
   format: number;
@@ -198,6 +204,8 @@ export class GpuFluidEngine {
   private undoStack: Snapshot[] = [];
   private redoStack: Snapshot[] = [];
   private pool: Snapshot[] = [];
+  private rewindStack: RewindPoint[] = [];
+  private maxRewind: number;
   private destroyed = false;
   // Bumped on every change to the paint, so callers can tell whether the
   // stats readout was taken after the latest change.
@@ -228,6 +236,8 @@ export class GpuFluidEngine {
     this.quality = { ...q, dye: opts.dye ?? q.dye, sim: opts.sim ?? q.sim };
     this.minDye = Math.min(1024, this.quality.dye);
     this.maxUndo = mobile ? 3 : 6;
+    // Each rewind point is a full copy of the painting, so phones keep fewer of them.
+    this.maxRewind = mobile ? 3 : 6;
     this.maxTexture = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
     this.fmtFloat = { internal: gl.RGBA16F, format: gl.RGBA, type: gl.HALF_FLOAT, filter: gl.LINEAR };
     this.fmtProps = this.fmtFloat;
@@ -382,13 +392,14 @@ export class GpuFluidEngine {
   }
 
   private dropHistory() {
-    for (const s of [...this.undoStack, ...this.redoStack, ...this.pool]) {
+    for (const s of [...this.undoStack, ...this.redoStack, ...this.pool, ...this.rewindStack.map(p => p.snap)]) {
       this.kill(s.dye);
       this.kill(s.props);
     }
     this.undoStack = [];
     this.redoStack = [];
     this.pool = [];
+    this.rewindStack = [];
   }
 
   // ---------- low level drawing ----------
@@ -576,6 +587,41 @@ export class GpuFluidEngine {
     this.restore(s);
     this.pool.push(s);
     return true;
+  }
+
+  // ---------- public: rewind ----------
+
+  /** Saves a rewind point. The canvas calls this every couple of seconds while paint is moving. */
+  checkpoint() {
+    if (this.lost) return;
+    this.rewindStack.push({ snap: this.snapshot(), time: this.time });
+    while (this.rewindStack.length > this.maxRewind) this.pool.push((this.rewindStack.shift() as RewindPoint).snap);
+  }
+
+  /**
+   * Steps the painting back to the newest rewind point that is at least
+   * `minAge` seconds old, so a tap always moves back by a visible amount.
+   * Redo brings back what was rewound.
+   */
+  rewind(minAge = 0.6) {
+    if (this.lost) return false;
+    let point = this.rewindStack.pop();
+    while (point && this.time - point.time < minAge && this.rewindStack.length) {
+      this.pool.push(point.snap);
+      point = this.rewindStack.pop();
+    }
+    if (!point) return false;
+    this.epoch++;
+    this.redoStack.push(this.snapshot());
+    while (this.redoStack.length > this.maxUndo) this.pool.push(this.redoStack.shift() as Snapshot);
+    this.restore(point.snap);
+    this.pool.push(point.snap);
+    return true;
+  }
+
+  /** How many steps back are available. */
+  get rewindDepth() {
+    return this.rewindStack.length;
   }
 
   // ---------- public: paint input ----------

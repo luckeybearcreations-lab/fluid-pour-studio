@@ -11,6 +11,8 @@ const MAX_DPR = 2;
 // How fast the turntable spins up and coasts to a stop (per second).
 const SPIN_UP = 1.6;
 const SPIN_DOWN = 2.4;
+// How often a rewind point is saved while paint is moving (seconds).
+const REWIND_STEP = 2;
 
 const cursorFor = (tool: Tool) =>
   tool === 'pour' ? 'crosshair'
@@ -31,6 +33,8 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   const propsRef = useRef(props);
   propsRef.current = props;
   const tiltDragRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  // Seconds of paint movement since the last rewind point.
+  const rewindClockRef = useRef(REWIND_STEP);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -97,6 +101,11 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       const dt = Math.min(Math.max((now - last) / 1000, 0), 1 / 30);
       last = now;
       const p = propsRef.current;
+      // A menu is open: hold everything exactly as it is and just keep the picture on screen.
+      if (p.paused) {
+        engine.render();
+        return;
+      }
       // The turntable has momentum: it spins up and coasts down instead of jumping.
       const target = p.spin;
       spin += (target - spin) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(spin) ? SPIN_UP : SPIN_DOWN)));
@@ -110,8 +119,16 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       // simulation has nothing left to do; just keep drawing.
       const settled = !director.active && engine.stats.wet < 0.0005 && engine.statsFresh;
       if (!settled) {
+        // Save a rewind point just before paint starts moving, then every couple of seconds.
+        rewindClockRef.current += dt;
+        if (rewindClockRef.current >= REWIND_STEP) {
+          rewindClockRef.current = 0;
+          engine.checkpoint();
+        }
         director.update(dt, p);
         engine.step(dt);
+      } else {
+        rewindClockRef.current = REWIND_STEP;
       }
       engine.render();
       overlay?.draw(settled ? null : director.view, dt);
@@ -201,6 +218,11 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       directorRef.current?.cancel();
       return engineRef.current?.redo() ?? false;
     },
+    rewind: () => {
+      directorRef.current?.cancel();
+      rewindClockRef.current = 0;
+      return engineRef.current?.rewind() ?? false;
+    },
     demoPour: (x: number, y: number) => {
       const director = directorRef.current;
       if (!director || director.active) return;
@@ -216,8 +238,9 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture(e.pointerId);
     const p = propsRef.current;
+    if (p.paused) return;
+    (e.target as Element).setPointerCapture(e.pointerId);
     const pt = pointOf(e);
     if (p.tool === 'tilt') {
       tiltDragRef.current = { id: e.pointerId, x: pt.px, y: pt.py };
@@ -239,7 +262,10 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (tiltDragRef.current?.id === e.pointerId) tiltDragRef.current = null;
+    if (tiltDragRef.current?.id === e.pointerId) {
+      tiltDragRef.current = null;
+      propsRef.current.onTiltEnd?.();
+    }
     directorRef.current?.pointerUp(e.pointerId);
   };
 

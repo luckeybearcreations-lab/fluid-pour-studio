@@ -5,6 +5,9 @@ import { Gauge, LocateFixed, RotateCcw, RotateCw, Square } from 'lucide-react';
 interface Props {
   params: PhysicsParams; onParamsChange: (p: PhysicsParams) => void;
   tilt: { x: number; y: number }; onTiltChange: (t: { x: number; y: number }) => void;
+  /** Called when the tilt pad is let go. */
+  onTiltEnd: () => void;
+  holdTilt: boolean; onHoldTiltChange: (hold: boolean) => void;
   spin: number; onSpinChange: (s: number) => void;
 }
 
@@ -17,7 +20,7 @@ const Slider: React.FC<{ label: string; value: number; onChange: (v: number) => 
 const PAD = 104;
 const clampSpin = (n: number) => Math.max(-1, Math.min(1, Math.round(n * 20) / 20));
 
-const PhysicsControls: React.FC<Props> = ({ params, onParamsChange, tilt, onTiltChange, spin, onSpinChange }) => {
+const PhysicsControls: React.FC<Props> = ({ params, onParamsChange, tilt, onTiltChange, onTiltEnd, holdTilt, onHoldTiltChange, spin, onSpinChange }) => {
   const padRef = useRef<HTMLDivElement>(null);
   const set = (key: keyof PhysicsParams) => (v: number) => onParamsChange({ ...params, [key]: v });
   const handlePad = (e: React.PointerEvent) => {
@@ -45,11 +48,12 @@ const PhysicsControls: React.FC<Props> = ({ params, onParamsChange, tilt, onTilt
 
     <div className="tilt-control">
       <div className="movement-label"><span>Tilt table</span><button onClick={() => onTiltChange({ x: 0, y: 0 })} title="Level the canvas"><LocateFixed /> Level</button></div>
-      <div ref={padRef} onPointerDown={e => { (e.currentTarget as Element).setPointerCapture(e.pointerId); handlePad(e); }} onPointerMove={handlePad} className="tilt-pad" style={{ height: PAD }}>
+      <div ref={padRef} onPointerDown={e => { (e.currentTarget as Element).setPointerCapture(e.pointerId); handlePad(e); }} onPointerMove={handlePad} onPointerUp={onTiltEnd} onPointerCancel={onTiltEnd} className="tilt-pad" style={{ height: PAD }}>
         <span className="tilt-axis vertical" /><span className="tilt-axis horizontal" />
         <span className="tilt-ring" />
         <span className="tilt-knob" style={{ left: `${(tilt.x + 1) * 50}%`, top: `${(tilt.y + 1) * 50}%` }} />
       </div>
+      <label className="hold-tilt"><input type="checkbox" checked={holdTilt} onChange={e => onHoldTiltChange(e.target.checked)} /> Keep the tilt after I let go</label>
     </div>
 
     <div className="spin-console">
