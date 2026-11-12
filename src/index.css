@@ -196,3 +196,6 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 .legal-page ul { padding-left: 22px; list-style: disc; }
 .legal-page a { color: #f0c77f; text-decoration: underline; }
 .legal-page .legal-meta { color: #80877f; font-size: 13px; }
+.paywall-link { padding: 0; border: 0; background: none; color: #9aa197; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.paywall-link:hover { color: #f0c77f; }
+.paywall-cta:disabled { opacity: .6; cursor: default; transform: none; }

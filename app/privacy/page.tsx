@@ -22,7 +22,8 @@ export default function PrivacyPage() {
 
         <h2>Payments</h2>
         <p>Fluid Studio Pro is sold through Stripe. Stripe collects your payment details and email address to process the subscription; we never see your card number. We can see your subscription status, your email address and your payment history in our Stripe account. See <a href="https://stripe.com/privacy" rel="noopener noreferrer">Stripe's privacy policy</a>.</p>
-        <p>After you subscribe, the app stores one cookie, <code>lbfs_pro</code>, that holds a signed reference to your subscription so the app knows Pro is active. It is not used for advertising or tracking.</p>
+        <p>In the Android app from Google Play, Pro is sold through Google Play instead. Google processes the payment; we receive a purchase reference so the app can confirm it with Google, and we never see your card. See <a href="https://policies.google.com/privacy" rel="noopener noreferrer">Google's privacy policy</a>.</p>
+        <p>After you subscribe or buy, the app stores one cookie, <code>lbfs_pro</code>, that holds a signed reference to your subscription or purchase so the app knows Pro is active. It is not used for advertising or tracking.</p>
 
         <h2>Hosting</h2>
         <p>The app is served through Cloudflare. Like any web host, Cloudflare processes technical information such as your IP address and browser type to deliver the app and protect it from abuse.</p>

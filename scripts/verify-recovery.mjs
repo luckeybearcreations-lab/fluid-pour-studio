@@ -116,6 +116,58 @@ for (const mode of ['flip', 'dirty', 'ring', 'dutch', 'swipe', 'open', 'bloom'])
   assert.ok(sim.particles.some(particle => particle.material === 'pearl'));
 }
 
+
+// ---------- Pro: Google Play purchases, checked against a fake Google ----------
+{
+  const { generateKeyPairSync, createVerify } = await import('node:crypto');
+  const { handleProRequest } = await importBundle('worker/pro.ts');
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const env = {
+    PRO_TOKEN_SECRET: 'test-secret-test-secret-test-secret',
+    GOOGLE_SERVICE_ACCOUNT: JSON.stringify({ client_email: 'svc@test.iam.gserviceaccount.com', private_key: privateKey.export({ type: 'pkcs8', format: 'pem' }) }),
+  };
+  const good = 'good-purchase-token-0123456789';
+  const refunded = 'refunded-purchase-token-0123456789';
+  const calls = [];
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => { try { return await fake(url, init); } catch (err) { console.error("fake Google failed:", err.message); throw err; } };
+  const fake = async (url, init) => {
+    url = String(url); calls.push(`${init.method || 'GET'} ${url}`);
+    if (url === 'https://oauth2.googleapis.com/token') {
+      const assertion = new URLSearchParams(init.body).get('assertion');
+      const [h, c, s] = assertion.split('.');
+      assert.ok(createVerify('RSA-SHA256').update(`${h}.${c}`).verify(publicKey, Buffer.from(s, 'base64url')), 'the Google sign-in request must be signed by the service account');
+      assert.equal(JSON.parse(Buffer.from(c, 'base64url')).scope, 'https://www.googleapis.com/auth/androidpublisher');
+      return Response.json({ access_token: 'access', expires_in: 3600 });
+    }
+    assert.ok(url.includes('/applications/com.luckybear.fluidstudio/purchases/products/pro_unlock/tokens/'), url);
+    assert.equal(init.headers.Authorization, 'Bearer access');
+    if (url.endsWith(':acknowledge')) return new Response(null, { status: 204 });
+    if (url.endsWith(good)) return Response.json({ purchaseState: 0, acknowledgementState: 0 });
+    if (url.endsWith(refunded)) return Response.json({ purchaseState: 1, acknowledgementState: 1 });
+    return new Response('{}', { status: 404 });
+  };
+  const post = token => handleProRequest(new Request('https://app.test/api/pro/play', { method: 'POST', body: JSON.stringify({ token }) }), env);
+  try {
+    const ok = await post(good);
+    assert.equal(ok.status, 200);
+    assert.equal((await ok.json()).pro, true);
+    const cookie = ok.headers.get('Set-Cookie');
+    assert.match(cookie, /^lbfs_pro=[^;]+; .*HttpOnly; Secure/);
+    assert.ok(calls.some(c => c.startsWith('POST') && c.endsWith(':acknowledge')), 'a new purchase must be acknowledged');
+    const status = await handleProRequest(new Request('https://app.test/api/pro/status', { headers: { Cookie: cookie.split(';')[0] } }), env);
+    assert.equal((await status.json()).pro, true);
+    assert.equal((await (await post(refunded)).json()).pro, false, 'a refunded purchase must not unlock Pro');
+    assert.equal((await post('unknown-purchase-token-0123456789')).status, 402);
+    assert.equal((await post('bad token!')).status, 400);
+    const forged = await handleProRequest(new Request('https://app.test/api/pro/status', { headers: { Cookie: 'lbfs_pro=eyJwbGF5IjoieCIsImNoayI6MX0.AAAA' } }), env);
+    assert.equal((await forged.json()).pro, false, 'an unsigned pass must not unlock Pro');
+    const noGoogle = await handleProRequest(new Request('https://app.test/api/pro/play', { method: 'POST', body: '{}' }), { PRO_TOKEN_SECRET: 'x', STRIPE_SECRET_KEY: 'unused' });
+    assert.equal(noGoogle.status, 503);
+  } finally { globalThis.fetch = realFetch; }
+  console.log('Google Play purchase check, acknowledgement, refund and forged-pass cases verified.');
+}
+
 console.log(`Recovery isolation verified across ${files.length} source/config files.`);
 console.log(fixtures.length ? `Legacy project compatibility verified with ${fixtures.length} saved projects.` : 'Legacy saved-project fixtures not found on this machine: skipped.');
 console.log('Material, pigment-mixing, and seven complete cup-pour modes verified.');

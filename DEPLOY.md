@@ -24,7 +24,7 @@ wrangler deploy --config dist/server/wrangler.json --name fluidpourstudio
 The app is then live at the `fluidpourstudio` workers.dev address Wrangler prints.
 
 ## 3. Turn on Pro payments
-Pro is checked on the server, so it needs two secrets on the worker:
+Pro on the website is checked on the server, so it needs two secrets on the worker:
 ```powershell
 wrangler secret put STRIPE_SECRET_KEY --name fluidpourstudio
 wrangler secret put PRO_TOKEN_SECRET --name fluidpourstudio
@@ -48,7 +48,30 @@ so a cancelled subscription loses Pro.
 To try it locally with `wrangler dev`, put the same two values in `dist/server/.dev.vars`
 (never commit that file).
 
-## 4. Custom domain (optional)
+## 4. Turn on Google Play purchases (Android app)
+In the Android app from Google Play, Pro is a one-time purchase handled by Google Play
+(`src/lib/playBilling.ts`, `worker/pro.ts`). The website keeps using Stripe. It needs:
+
+1. **The product.** Play Console → Lucky Bear Fluid Studio → Monetize with Play → Products →
+   One-time products → create one with the product ID `pro_unlock`, price $4.99, and activate it.
+   Play only offers this after a build with billing switched on has been uploaded (step 4).
+2. **A service account**, so the worker can confirm purchases with Google:
+   - Google Cloud Console → enable the "Google Play Android Developer API" → IAM → Service accounts →
+     create one → Keys → Add key → JSON. Keep the downloaded file private.
+   - Play Console → Users and permissions → Invite new users → the service account's email →
+     for this app, allow "View financial data" and "Manage orders and subscriptions".
+3. **The secret on the worker** (paste the whole JSON file when asked):
+   ```powershell
+   wrangler secret put GOOGLE_SERVICE_ACCOUNT --name fluidpourstudio
+   ```
+4. **An Android build with Play Billing switched on.** In the PWABuilder or Bubblewrap settings for
+   the Android package, enable Play Billing, raise the version code, build, sign with the same
+   upload key as before, and upload the `.aab` to the closed test.
+
+Until all four are done, the Android app's Unlock button reports that the purchase couldn't finish.
+Never show the Stripe link in the Play app: the code already hides it whenever Play Billing is present.
+
+## 5. Custom domain (optional)
 As of November 2026 the app is served at fluidpour.luckybears.org. To serve it from another domain you own
 (for example one in your Cloudflare account): Cloudflare Dashboard → Workers & Pages →
 fluidpourstudio → Settings → Domains, then update the payment link redirect in step 3 to match.
