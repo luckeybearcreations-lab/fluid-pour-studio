@@ -11,6 +11,8 @@ const MAX_DPR = 2;
 // How fast the turntable spins up and coasts to a stop (per second).
 const SPIN_UP = 1.6;
 const SPIN_DOWN = 2.4;
+// How often a rewind point is saved while paint is moving (seconds).
+const REWIND_STEP = 2;
 
 const cursorFor = (tool: Tool) =>
   tool === 'pour' ? 'crosshair'
@@ -31,6 +33,10 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   const propsRef = useRef(props);
   propsRef.current = props;
   const tiltDragRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  // Seconds of paint movement since the last rewind point.
+  const rewindClockRef = useRef(REWIND_STEP);
+  // The copy of the canvas that is being recorded into a clip, when one is.
+  const clipRef = useRef<{ out: HTMLCanvasElement; ctx: CanvasRenderingContext2D } | null>(null);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -42,6 +48,27 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
       overlay?.resize(container.clientWidth, container.clientHeight, dpr);
       return [Math.max(1, Math.round(container.clientWidth * dpr)), Math.max(1, Math.round(container.clientHeight * dpr))];
+    };
+    // Copies the frame just drawn into the clip being recorded, with the app's name on it.
+    const captureClip = () => {
+      const clip = clipRef.current;
+      if (!clip) return;
+      const { out, ctx } = clip;
+      ctx.drawImage(canvas, 0, 0, out.width, out.height);
+      if (overlayRef.current) ctx.drawImage(overlayRef.current, 0, 0, out.width, out.height);
+      const size = Math.round(out.width * 0.036);
+      ctx.font = `600 ${size}px Manrope, system-ui, sans-serif`;
+      const label = 'Lucky Bear Fluid Studio';
+      const w = ctx.measureText(label).width + size * 1.4;
+      const x = out.width - w - size * 0.6;
+      const y = out.height - size * 2.4;
+      ctx.fillStyle = 'rgba(20,24,22,0.62)';
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, size * 1.9, size * 0.95);
+      ctx.fill();
+      ctx.fillStyle = '#f2c572';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x + size * 0.7, y + size * 0.98);
     };
     let applied: unknown[] | null = null;
     const create = () => {
@@ -97,6 +124,12 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       const dt = Math.min(Math.max((now - last) / 1000, 0), 1 / 30);
       last = now;
       const p = propsRef.current;
+      // A menu is open: hold everything exactly as it is and just keep the picture on screen.
+      if (p.paused) {
+        engine.render();
+        captureClip();
+        return;
+      }
       // The turntable has momentum: it spins up and coasts down instead of jumping.
       const target = p.spin;
       spin += (target - spin) * (1 - Math.exp(-dt * (Math.abs(target) > Math.abs(spin) ? SPIN_UP : SPIN_DOWN)));
@@ -110,11 +143,20 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       // simulation has nothing left to do; just keep drawing.
       const settled = !director.active && engine.stats.wet < 0.0005 && engine.statsFresh;
       if (!settled) {
+        // Save a rewind point just before paint starts moving, then every couple of seconds.
+        rewindClockRef.current += dt;
+        if (rewindClockRef.current >= REWIND_STEP) {
+          rewindClockRef.current = 0;
+          engine.checkpoint();
+        }
         director.update(dt, p);
         engine.step(dt);
+      } else {
+        rewindClockRef.current = REWIND_STEP;
       }
       engine.render();
       overlay?.draw(settled ? null : director.view, dt);
+      captureClip();
       statsClock += dt;
       if (statsClock > 0.25) {
         statsClock = 0;
@@ -201,6 +243,37 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
       directorRef.current?.cancel();
       return engineRef.current?.redo() ?? false;
     },
+    rewind: () => {
+      directorRef.current?.cancel();
+      rewindClockRef.current = 0;
+      return engineRef.current?.rewind() ?? false;
+    },
+    recordClip: (seconds: number, onDone: (clip: Blob | null) => void) => {
+      const src = canvasRef.current;
+      if (!src || clipRef.current || typeof MediaRecorder === 'undefined') return null;
+      const mime = ['video/mp4;codecs=avc1.42E01E', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m));
+      const out = document.createElement('canvas');
+      // 720 wide is plenty for social posts and keeps phones recording smoothly. Encoders want even sizes.
+      const scale = Math.min(1, 720 / src.width);
+      out.width = Math.max(2, Math.round((src.width * scale) / 2) * 2);
+      out.height = Math.max(2, Math.round((src.height * scale) / 2) * 2);
+      const ctx = out.getContext('2d');
+      if (!mime || !ctx || typeof out.captureStream !== 'function') return null;
+      const stream = out.captureStream(30);
+      const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6_000_000 });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      recorder.onstop = () => {
+        clipRef.current = null;
+        stream.getTracks().forEach(track => track.stop());
+        onDone(chunks.length ? new Blob(chunks, { type: mime.split(';')[0] }) : null);
+      };
+      clipRef.current = { out, ctx };
+      recorder.start();
+      const stop = () => { if (recorder.state !== 'inactive') recorder.stop(); };
+      const timer = window.setTimeout(stop, seconds * 1000);
+      return () => { window.clearTimeout(timer); stop(); };
+    },
     demoPour: (x: number, y: number) => {
       const director = directorRef.current;
       if (!director || director.active) return;
@@ -216,8 +289,9 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
-    (e.target as Element).setPointerCapture(e.pointerId);
     const p = propsRef.current;
+    if (p.paused) return;
+    (e.target as Element).setPointerCapture(e.pointerId);
     const pt = pointOf(e);
     if (p.tool === 'tilt') {
       tiltDragRef.current = { id: e.pointerId, x: pt.px, y: pt.py };
@@ -239,7 +313,10 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
-    if (tiltDragRef.current?.id === e.pointerId) tiltDragRef.current = null;
+    if (tiltDragRef.current?.id === e.pointerId) {
+      tiltDragRef.current = null;
+      propsRef.current.onTiltEnd?.();
+    }
     directorRef.current?.pointerUp(e.pointerId);
   };
 

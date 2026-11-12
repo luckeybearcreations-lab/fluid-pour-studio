@@ -1,7 +1,8 @@
 /**
  * PaywallGate — wraps save and export actions behind a Pro check.
  *
- * Free tier: unlimited pouring, unlimited undo/redo, project file open/download.
+ * Free tier: unlimited pouring, unlimited undo/redo, project file open/download,
+ * a few saved pours (FREE_SAVES in AppLayout) and shareable clips.
  * Pro: Save to gallery, export PNG (1×/2×/4×), artwork inside project files.
  * On the web it is $4.99/mo through Stripe; in the Google Play app it is a one-time
  * purchase through Google Play (src/lib/playBilling.ts). The Play app never shows Stripe.
@@ -30,17 +31,19 @@ interface PaywallModalProps {
   open: boolean;
   feature: 'save' | 'export';
   onClose: () => void;
+  /** An extra line above the button, for example why the paywall opened. */
+  note?: string;
   /** Set inside the Google Play app: Pro is sold by Google Play as a one-time unlock. */
   play?: { price: string | null; onBuy: () => Promise<void>; onRestore: () => Promise<void> };
 }
 
-export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClose, play }) => {
+export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClose, play, note }) => {
   const [busy, setBusy] = React.useState(false);
   if (!open) return null;
 
   const featureLabel =
     feature === 'save'
-      ? 'save pours to your gallery'
+      ? 'save more pours to your gallery'
       : 'export your artwork as a print-ready PNG';
 
   const handleUpgrade = async () => {
@@ -73,11 +76,13 @@ export const PaywallModal: React.FC<PaywallModalProps> = ({ open, feature, onClo
         </p>
 
         <ul className="paywall-perks">
-          <li><Sparkles size={14} /> Save pours to your personal gallery</li>
+          <li><Sparkles size={14} /> Unlimited saved pours in your gallery</li>
           <li><Sparkles size={14} /> Keep the artwork inside your project files</li>
           <li><Sparkles size={14} /> 1×, 2×, and 4× print-ready PNG export</li>
           <li><Sparkles size={14} /> {play ? 'Pay once. Yours on every phone with your Google account' : 'Cancel any time'}</li>
         </ul>
+
+        {note && <p className="paywall-note">{note}</p>}
 
         <button className="paywall-cta" onClick={handleUpgrade} disabled={busy}>
           {play ? `Unlock Pro — ${play.price ?? 'one-time purchase'}` : `Start Pro — ${PRO_MONTHLY_PRICE}`}

@@ -567,7 +567,16 @@ float height (vec2 uv) {
   vec4 d = texture(uDye, uv);
   float a = clamp(d.a, 0.0, 1.0);
   vec3 c = d.rgb / max(d.a, 1e-3);
-  return a * 0.8 + dot(c, vec3(0.299, 0.587, 0.114)) * a * 0.03;
+  // Lighter colors ride a little higher, so every seam between colors becomes a ridge.
+  return a * 0.8 + dot(c, vec3(0.299, 0.587, 0.114)) * a * 0.17;
+}
+// The studio the wet paint reflects: a softbox up and to the left, a thin strip
+// light to the right, and a faint glow from the room.
+vec3 studio (vec3 r) {
+  float box = (1.0 - smoothstep(0.20, 0.32, abs(r.x + 0.40))) * (1.0 - smoothstep(0.13, 0.22, abs(r.y - 0.50)));
+  float strip = (1.0 - smoothstep(0.02, 0.06, abs(r.x - 0.62))) * (1.0 - smoothstep(0.25, 0.5, abs(r.y)));
+  float room = 0.07 + 0.08 * clamp(r.y * 0.5 + 0.5, 0.0, 1.0);
+  return vec3(1.0, 0.98, 0.94) * box + vec3(0.86, 0.92, 1.0) * strip * 0.6 + vec3(room);
 }
 void main () {
   vec4 d = texture(uDye, vUv);
@@ -581,12 +590,27 @@ void main () {
   vec3 base = uBase * (1.0 - uWeave * 0.07 * weave);
   // Soft studio light from the top left, like the classic canvas look.
   base *= mix(1.03, 0.93, (vUv.x + 1.0 - vUv.y) * 0.5);
+  // Paint has thickness: it shades the bare canvas on the side away from the light.
+  float lit = clamp(texture(uDye, vUv + vec2(-0.35, 0.55) * uDyeTexel * 8.0).a, 0.0, 1.0);
+  base *= 1.0 - 0.26 * lit * (1.0 - a);
   vec3 col = uTransparent == 1 ? paint : mix(base, paint, a);
 
+  // Surface shape from three scales: fine ridges where colors meet, the rounded
+  // body of each pool, and a wide bevel at the paint's edge so it reads as thick.
   vec2 e = uDyeTexel * 1.5;
+  vec2 e2 = uDyeTexel * 5.0;
+  vec2 e3 = uDyeTexel * 11.0;
   float hx = height(vUv + vec2(e.x, 0.0)) - height(vUv - vec2(e.x, 0.0));
   float hy = height(vUv + vec2(0.0, e.y)) - height(vUv - vec2(0.0, e.y));
-  vec3 n = normalize(vec3(-hx * 4.0, -hy * 4.0, 1.0));
+  float hR = height(vUv + vec2(e2.x, 0.0));
+  float hL = height(vUv - vec2(e2.x, 0.0));
+  float hU = height(vUv + vec2(0.0, e2.y));
+  float hD = height(vUv - vec2(0.0, e2.y));
+  float wx = texture(uDye, vUv + vec2(e3.x, 0.0)).a - texture(uDye, vUv - vec2(e3.x, 0.0)).a;
+  float wy = texture(uDye, vUv + vec2(0.0, e3.y)).a - texture(uDye, vUv - vec2(0.0, e3.y)).a;
+  vec3 n = normalize(vec3(-(hx * 6.5 + (hR - hL) * 2.2 + clamp(wx, -1.0, 1.0) * 0.7), -(hy * 6.5 + (hU - hD) * 2.2 + clamp(wy, -1.0, 1.0) * 0.7), 1.0));
+  // Valleys between ridges sit in a little shade.
+  float valley = clamp(((hR + hL + hU + hD) * 0.25 - height(vUv)) * 3.5, 0.0, 0.2);
   vec3 L = normalize(vec3(-0.35, 0.55, 1.0));
   vec3 H = normalize(L + vec3(0.0, 0.0, 1.0));
   float diff = clamp(dot(n, L), 0.0, 1.0);
@@ -608,14 +632,30 @@ void main () {
   vec3 irid = 0.5 + 0.5 * cos(6.2831 * (vec3(0.0, 0.33, 0.67) + ang));
   col = mix(col, col * 0.75 + irid * irid * 0.35, pearl * 0.55);
 
-  col *= 0.9 + 0.1 * diff;
-  // Wet paint is glossier than dry paint.
+  // Form shading: slopes facing the light lift, slopes facing away fall off.
+  col *= mix(1.0, 0.84 + 0.19 * diff, a);
+  col *= 1.0 - valley * a;
+  // Wet paint is richer in color and glossier than dry paint.
+  float lum = dot(col, vec3(0.299, 0.587, 0.114));
+  col = mix(vec3(lum), col, 1.0 + 0.14 * a * wet);
   float gloss = uGloss * mix(0.5, 1.0, wet);
-  col += vec3(1.0) * spec * gloss * 0.5 * a;
+  // A tight highlight (tinted by the paint on metallics) under a softer clear-coat sheen.
+  vec3 specTint = mix(vec3(1.0), paint * 1.3 + 0.25, metal * 0.7);
+  float coat = pow(clamp(dot(n, H), 0.0, 1.0), 28.0);
+  col += specTint * spec * gloss * 0.6 * a;
+  col += vec3(1.0) * coat * gloss * 0.06 * a * wet;
+  // Reflections of the studio lights slide over ridges and edges; flat paint
+  // barely reflects, steep paint and metallics reflect more.
+  vec3 refl = vec3(2.0 * n.z * n.x, 2.0 * n.z * n.y, 2.0 * n.z * n.z - 1.0);
+  float fres = 0.04 + 0.96 * pow(1.0 - clamp(n.z, 0.0, 1.0), 5.0);
+  float mirror = mix(fres * 3.0, 0.45, metal);
+  col += studio(refl) * mix(vec3(1.0), paint, metal * 0.8) * mirror * gloss * a;
   if (uTransparent == 0) {
     float sheen = smoothstep(0.9, 0.0, length((vUv - vec2(0.3, 0.75)) * vec2(uAspect, 1.0)));
     col += vec3(1.0) * sheen * 0.03 * uGloss;
   }
   col = pow(clamp(col, 0.0, 1.0), vec3(1.0 / 2.2));
+  // A touch of noise keeps smooth blends from showing bands on phone screens.
+  col += (hash12(vUv * uPixels + 0.37) - 0.5) / 255.0;
   fragColor = vec4(col, uTransparent == 1 ? a : 1.0);
 }`;

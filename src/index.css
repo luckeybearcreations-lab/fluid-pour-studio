@@ -199,3 +199,34 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 .paywall-link { padding: 0; border: 0; background: none; color: #9aa197; font: inherit; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
 .paywall-link:hover { color: #f0c77f; }
 .paywall-cta:disabled { opacity: .6; cursor: default; transform: none; }
+
+/* Always-visible canvas controls: step back, level, stop. */
+.canvas-quick { position: absolute; z-index: 6; left: 18px; bottom: 18px; display: flex; gap: 8px; }
+.canvas-quick button { height: 44px; min-width: 44px; padding: 0 13px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,255,255,.16); border-radius: 12px; background: rgba(23,28,25,.9); color: #d9dcd4; font: 600 12px Manrope, system-ui, sans-serif; cursor: pointer; box-shadow: 0 8px 22px rgba(0,0,0,.35); backdrop-filter: blur(6px); }
+.canvas-quick button svg { width: 18px; height: 18px; }
+.canvas-quick button:hover { color: #f0c77f; border-color: rgba(227,183,111,.5); }
+.canvas-quick button.alert { border-color: rgba(227,183,111,.65); color: #f0c77f; }
+.canvas-paused { position: absolute; z-index: 6; left: 50%; top: 18px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px; border-radius: 999px; background: rgba(20,24,22,.88); color: #f0c77f; font: 600 12px Manrope, system-ui, sans-serif; white-space: nowrap; pointer-events: none; }
+.canvas-paused svg { width: 14px; height: 14px; }
+.hold-tilt { margin-top: 9px; display: flex; align-items: center; gap: 8px; color: #b9bdb7; font-size: 11px; cursor: pointer; }
+.hold-tilt input { width: 16px; height: 16px; accent-color: #e3b76f; }
+@media (max-width: 700px) { .canvas-quick { left: 10px; bottom: 10px; } }
+/* Tapping anywhere outside the More menu closes it. */
+.more-backdrop { display: none; }
+@media (max-width: 700px) { .more-backdrop { display: block; position: fixed; inset: 0; z-index: 55; } }
+/* Finger-sized controls on touch layouts. */
+@media (max-width: 1023px) {
+  .segmented-control button, .spin-buttons button, .spin-presets button, .surface-options button, .export-options button, .cup-reset, .movement-label button, .cup-layers button, .spin-dock-buttons button { min-height: 40px; }
+  .movement-label button { padding: 0 8px; }
+}
+@media (max-width: 520px) { .paint-wells { grid-template-columns: repeat(6, 1fr); } }
+/* Clip recording and sharing. */
+.canvas-quick button.recording { border-color: #e5484d; color: #ffb4b6; }
+.rec-dot { width: 10px; height: 10px; border-radius: 50%; background: #e5484d; animation: rec-pulse 1s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: .35; } }
+.clip-ready { position: absolute; z-index: 7; left: 50%; bottom: 74px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid rgba(227,183,111,.4); border-radius: 14px; background: rgba(23,28,25,.96); color: #eee9df; font: 600 13px Manrope, system-ui, sans-serif; white-space: nowrap; box-shadow: 0 14px 40px rgba(0,0,0,.5); }
+.clip-ready button { height: 40px; min-width: 40px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: #232925; color: #d9dcd4; font: inherit; cursor: pointer; }
+.clip-ready button.primary { border: 0; background: #e3b76f; color: #141816; }
+.clip-ready button svg { width: 16px; height: 16px; }
+@media (max-width: 420px) { .clip-ready > span { display: none; } }
+.paywall-note { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: rgba(227,183,111,.1); color: #f0c77f; font-size: 13px; line-height: 1.5; }

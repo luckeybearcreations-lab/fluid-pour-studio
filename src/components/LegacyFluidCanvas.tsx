@@ -14,6 +14,13 @@ export interface FluidCanvasHandle {
   redo: () => boolean;
   /** Starts one pour at a point (0..1 across and down the canvas), as if tapped there. GPU engine only. */
   demoPour?: (x: number, y: number) => void;
+  /** Steps the painting back about two seconds. Returns false when there is nothing to step back to. */
+  rewind: () => boolean;
+  /**
+   * Records the canvas for up to `seconds` and hands back a video. Returns a function that
+   * stops early, or null when this device can't record. GPU engine only.
+   */
+  recordClip?: (seconds: number, onDone: (clip: Blob | null) => void) => (() => void) | null;
 }
 
 export interface FluidCanvasProps {
@@ -26,6 +33,10 @@ export interface FluidCanvasProps {
   spin: number;
   surface: CanvasSurface;
   onTiltChange: (t: { x: number; y: number }) => void;
+  /** Called when a tilt drag on the canvas ends. */
+  onTiltEnd?: () => void;
+  /** Freezes the paint (no flow, tilt, spin or drying) while a menu is open. */
+  paused?: boolean;
   /** Live readout: wet paint (particle count, or percent of the canvas for the GPU engine) and cells. */
   onStats?: (wet: number, cells: number, unit?: 'particles' | 'percent') => void;
 }
@@ -131,6 +142,15 @@ const LegacyFluidCanvas = forwardRef<FluidCanvasHandle, FluidCanvasProps>((props
       pushHistory();
       restoreDataUrl(url);
     },
+    // The classic engine keeps no timed history, so rewind steps back one action, like undo.
+    rewind: () => {
+      const previous = historyRef.current.pop();
+      if (!previous) return false;
+      const current = composite(1);
+      if (current) redoRef.current.push(current.toDataURL('image/png'));
+      restoreDataUrl(previous);
+      return true;
+    },
     undo: () => {
       const previous = historyRef.current.pop();
       if (!previous) return false;
@@ -185,7 +205,7 @@ const LegacyFluidCanvas = forwardRef<FluidCanvasHandle, FluidCanvasProps>((props
     let frame = 0;
     const loop = () => {
       const sim = simRef.current;
-      if (sim) {
+      if (sim && !propsRef.current.paused) {
         const p = propsRef.current;
         const ptr = pointerRef.current;
         // Continuous pour while pointer held
