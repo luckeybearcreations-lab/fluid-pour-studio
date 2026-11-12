@@ -16,6 +16,11 @@ export interface FluidCanvasHandle {
   demoPour?: (x: number, y: number) => void;
   /** Steps the painting back about two seconds. Returns false when there is nothing to step back to. */
   rewind: () => boolean;
+  /**
+   * Records the canvas for up to `seconds` and hands back a video. Returns a function that
+   * stops early, or null when this device can't record. GPU engine only.
+   */
+  recordClip?: (seconds: number, onDone: (clip: Blob | null) => void) => (() => void) | null;
 }
 
 export interface FluidCanvasProps {

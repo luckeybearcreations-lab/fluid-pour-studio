@@ -220,3 +220,13 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
   .movement-label button { padding: 0 8px; }
 }
 @media (max-width: 520px) { .paint-wells { grid-template-columns: repeat(6, 1fr); } }
+/* Clip recording and sharing. */
+.canvas-quick button.recording { border-color: #e5484d; color: #ffb4b6; }
+.rec-dot { width: 10px; height: 10px; border-radius: 50%; background: #e5484d; animation: rec-pulse 1s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: .35; } }
+.clip-ready { position: absolute; z-index: 7; left: 50%; bottom: 74px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid rgba(227,183,111,.4); border-radius: 14px; background: rgba(23,28,25,.96); color: #eee9df; font: 600 13px Manrope, system-ui, sans-serif; white-space: nowrap; box-shadow: 0 14px 40px rgba(0,0,0,.5); }
+.clip-ready button { height: 40px; min-width: 40px; padding: 0 12px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: #232925; color: #d9dcd4; font: inherit; cursor: pointer; }
+.clip-ready button.primary { border: 0; background: #e3b76f; color: #141816; }
+.clip-ready button svg { width: 16px; height: 16px; }
+@media (max-width: 420px) { .clip-ready > span { display: none; } }
+.paywall-note { margin: 0 0 16px; padding: 10px 12px; border-radius: 10px; background: rgba(227,183,111,.1); color: #f0c77f; font-size: 13px; line-height: 1.5; }

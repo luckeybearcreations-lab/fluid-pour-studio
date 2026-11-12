@@ -13,10 +13,14 @@ import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine'
 import { PaintColor, DEFAULT_COLOR, PALETTE } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
 import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluidProject } from '@/lib/projectFile';
-import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause } from 'lucide-react';
+import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause, Video, Share2, X } from 'lucide-react';
 
 const WELCOME_KEY = 'lbfs_welcomed_v1';
 const HOLD_TILT_KEY = 'lbfs_hold_tilt';
+// Saved pours a free account can keep before Pro is needed.
+const FREE_SAVES = 3;
+// Longest clip, in seconds.
+const CLIP_SECONDS = 8;
 
 const AppLayout: React.FC = () => {
   const { pro: isPro, playApp, playPrice, buyWithPlay, restoreWithPlay } = useProSession(message => showToast(message, 5000));
@@ -51,6 +55,9 @@ const AppLayout: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [narrow, setNarrow] = useState(false);
+  const [clipState, setClipState] = useState<'idle' | 'recording' | 'ready'>('idle');
+  const [clip, setClip] = useState<Blob | null>(null);
+  const stopClipRef = useRef<(() => void) | null>(null);
   const [holdTilt, setHoldTilt] = useState(false);
   const tiltRef = useRef(tilt);
   tiltRef.current = tilt;
@@ -126,6 +133,43 @@ const AppLayout: React.FC = () => {
     return () => { window.clearTimeout(pour); window.clearTimeout(back); };
   }, []);
 
+  // Free accounts can keep a few saved pours; Pro lifts the limit.
+  const freeSavesLeft = Math.max(0, FREE_SAVES - gallery.length);
+  const canSave = isPro || galleryLoading || freeSavesLeft > 0;
+
+  const startClip = () => {
+    const stop = canvasRef.current?.recordClip?.(CLIP_SECONDS, blob => {
+      stopClipRef.current = null;
+      setClip(blob);
+      setClipState(blob ? 'ready' : 'idle');
+      if (!blob) showToast('The clip could not be recorded on this device');
+    });
+    if (!stop) { showToast('Clips are not supported on this device'); return; }
+    stopClipRef.current = stop;
+    setClipState('recording');
+    showToast(`Recording for ${CLIP_SECONDS} seconds. Pour, tilt or spin!`, 3000);
+  };
+  const clipFile = () => clip && new File([clip], `lucky-bear-pour-${Date.now()}.${clip.type.includes('mp4') ? 'mp4' : 'webm'}`, { type: clip.type });
+  const downloadClip = () => {
+    const file = clipFile();
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.download = file.name; link.href = url; link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  };
+  const shareClip = async () => {
+    const file = clipFile();
+    if (!file) return;
+    if (navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: 'Lucky Bear Fluid Studio', text: 'Made with Lucky Bear Fluid Studio' }); } catch { /* closed the share sheet */ }
+    } else {
+      downloadClip();
+      showToast('Clip downloaded. Share it from your files.');
+    }
+  };
+  const closeClip = () => { setClip(null); setClipState('idle'); };
+
   const requirePro = (feature: 'save' | 'export', action: () => void) => {
     if (isPro) { action(); return; }
     setPaywallFeature(feature);
@@ -141,10 +185,11 @@ const AppLayout: React.FC = () => {
       const name = `Pour #${gallery.length + 1}`;
       const { item, offline: savedOffline } = await savePour(name, snap);
       setGallery(prev => [item, ...prev]); setOffline(savedOffline);
-      showToast(savedOffline ? 'Cloud unavailable — saved on this device' : 'Saved to your gallery');
+      const left = FREE_SAVES - gallery.length - 1;
+      showToast(isPro ? 'Saved to your gallery' : left > 0 ? `Saved. ${left} free save${left > 1 ? 's' : ''} left.` : 'Saved. That was your last free save.', 3500);
     } catch (e) { showToast(e instanceof Error ? e.message : 'Could not save pour'); }
     finally { setSaving(false); }
-  }, [gallery.length, saving]);
+  }, [gallery.length, saving, isPro]);
 
   const handleLoad = (item: GalleryItem) => {
     canvasRef.current?.loadSnapshot(item.full); setGalleryOpen(false); setTilt({ x: 0, y: 0 }); setSpin(0); showToast(`Loaded ${item.name}`);
@@ -275,7 +320,7 @@ const AppLayout: React.FC = () => {
           <button onClick={() => requirePro('export', () => canvasRef.current?.exportPNG(exportScale, transparentExport))} className="action-button secondary" title={`Export ${exportScale}× PNG`} aria-label={`Export ${exportScale}× PNG`}><Download /><span className="action-label">Export</span></button>
           <button onClick={event => { if (!confirmClear) event.stopPropagation(); handleClear(); }} className={`action-button secondary ${confirmClear ? 'danger' : ''}`} aria-label={confirmClear ? 'Confirm clear canvas' : 'Clear canvas'}><Trash2 /><span className="action-label">{confirmClear ? 'Confirm' : 'Clear'}</span></button>
           </div>
-          <button onClick={() => requirePro('save', handleSave)} disabled={saving} className="action-button primary">{saving ? <Loader2 className="animate-spin" /> : <Save />}<span>{saving ? 'Saving' : <>Save<span className="save-long"> pour</span>{!isPro && ' ✦'}</>}</span></button>
+          <button onClick={() => (canSave ? handleSave() : requirePro('save', handleSave))} disabled={saving} className="action-button primary">{saving ? <Loader2 className="animate-spin" /> : <Save />}<span>{saving ? 'Saving' : <>Save<span className="save-long"> pour</span>{!canSave && ' ✦'}</>}</span></button>
           <input ref={projectInputRef} className="sr-only" type="file" accept=".json,.luckybear.json,application/json" onChange={handleLoadProject} />
         </div>
       </header>
@@ -300,10 +345,19 @@ const AppLayout: React.FC = () => {
             <SpinDock spin={spin} onSpinChange={setSpin} frameRef={frameRef} />
             <div className="canvas-quick">
               <button onClick={handleRewind} title="Step back about 2 seconds" aria-label="Step back about 2 seconds"><Rewind /><span>2s</span></button>
+              {clipState === 'recording'
+                ? <button onClick={() => stopClipRef.current?.()} className="recording" aria-label="Stop recording the clip"><i className="rec-dot" /><span>Stop</span></button>
+                : <button onClick={startClip} title={`Record a ${CLIP_SECONDS}-second clip to share`} aria-label="Record a clip to share"><Video /><span>Clip</span></button>}
               {(tilt.x !== 0 || tilt.y !== 0) && <button onClick={levelCanvas} className="alert" aria-label="Level the canvas"><LocateFixed /><span>Level</span></button>}
               {spin !== 0 && <button onClick={() => setSpin(0)} className="alert" aria-label="Stop the turntable"><Square /><span>Stop</span></button>}
             </div>
             {paused && <div className="canvas-paused" role="status"><Pause /> Paused while the menu is open</div>}
+            {clipState === 'ready' && <div className="clip-ready" role="dialog" aria-label="Your clip is ready">
+              <span>Your clip is ready</span>
+              <button onClick={shareClip} className="primary"><Share2 /> Share</button>
+              <button onClick={downloadClip}><Download /> Save</button>
+              <button onClick={closeClip} aria-label="Discard the clip"><X /></button>
+            </div>}
           </div>
           <div className="stage-footer"><span>{projectName}</span><span>{cupColors.length} paint layers</span><span>{pourMode} pour</span>{offline && <span className="offline"><CloudOff /> device storage</span>}<span className="stage-footer-spacer" /><span>{exportScale}× {transparentExport ? 'transparent ' : ''}export ready</span></div>
           <div className="stage-legal"><a href="/privacy">Privacy</a><a href="/terms">Terms</a>{isPro && !playApp && <a href={MANAGE_SUBSCRIPTION_URL}>Manage subscription</a>}</div>
@@ -320,7 +374,7 @@ const AppLayout: React.FC = () => {
 
       <GalleryPanel open={galleryOpen} items={gallery} loading={galleryLoading} offline={offline} syncing={syncing} onClose={() => setGalleryOpen(false)} onLoad={handleLoad} onDelete={handleDelete} onSync={handleSync} />
       <StudioNotebook open={notebookOpen} color={color} mode={pourMode} params={params} onClose={() => setNotebookOpen(false)} onLoad={loadRecipe} />
-      <PaywallModal open={paywallOpen} feature={paywallFeature} onClose={() => setPaywallOpen(false)} play={playApp ? { price: playPrice, onBuy: buyWithPlay, onRestore: restoreWithPlay } : undefined} />
+      <PaywallModal open={paywallOpen} feature={paywallFeature} note={paywallFeature === 'save' ? `You have used your ${FREE_SAVES} free saves. Go Pro for unlimited saves, or delete a saved pour to make room.` : undefined} onClose={() => setPaywallOpen(false)} play={playApp ? { price: playPrice, onBuy: buyWithPlay, onRestore: restoreWithPlay } : undefined} />
       {toast && <div className="studio-toast">{toast}</div>}
     </div>
   );
