@@ -21,7 +21,7 @@
  *                           given access to the app in Play Console (financial data + manage orders)
  * Optional:
  *   PRO_PRODUCT_ID     the Stripe product that counts as Pro (defaults to Fluid Studio Pro)
- *   PLAY_PACKAGE_NAME  the Android package (defaults to com.luckybear.fluidstudio)
+ *   PLAY_PACKAGE_NAME  the Android package (defaults to com.luckybearcreations.fluidstudio)
  *   PLAY_PRODUCT_ID    the Play one-time product (defaults to pro_unlock)
  */
 
@@ -42,7 +42,7 @@ type CheckoutSession = { status: string; mode: string; subscription: Subscriptio
 
 const COOKIE = 'lbfs_pro';
 const DEFAULT_PRODUCT = 'prod_VERfZwri6NJlS2';
-const DEFAULT_PLAY_PACKAGE = 'com.luckybear.fluidstudio';
+const DEFAULT_PLAY_PACKAGE = 'com.luckybearcreations.fluidstudio';
 const DEFAULT_PLAY_PRODUCT = 'pro_unlock';
 const RECHECK_MS = 24 * 60 * 60 * 1000;
 // Browsers cap cookie lifetimes at 400 days; the pass is refreshed on every re-check.

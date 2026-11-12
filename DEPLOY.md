@@ -64,11 +64,16 @@ In the Android app from Google Play, Pro is a one-time purchase handled by Googl
    ```powershell
    wrangler secret put GOOGLE_SERVICE_ACCOUNT --name fluidpourstudio
    ```
-4. **An Android build with Play Billing switched on.** In the PWABuilder or Bubblewrap settings for
-   the Android package, enable Play Billing, raise the version code, build, sign with the same
-   upload key as before, and upload the `.aab` to the closed test.
+4. **An Android build with Play Billing switched on.** The Play app is
+   `com.luckybearcreations.fluidstudio` ("Fluid Pour Studio: Lucky Bear"), packaged with PWABuilder
+   from the live site with Google Play billing enabled. For each new build raise the version code,
+   sign with the same upload key (`signing.keystore` from the first package: keep it and its
+   passwords backed up and private), and upload the `.aab`.
+5. **App links.** The worker serves `/.well-known/assetlinks.json` (`worker/index.ts`). After the
+   first upload, copy the "App signing key" SHA-256 from Play Console → App integrity and add it to
+   `PLAY_FINGERPRINTS`, or the app shows a browser address bar.
 
-Until all four are done, the Android app's Unlock button reports that the purchase couldn't finish.
+Until all of these are done, the Android app's Unlock button reports that the purchase couldn't finish.
 Never show the Stripe link in the Play app: the code already hides it whenever Play Billing is present.
 
 ## 5. Custom domain (optional)
