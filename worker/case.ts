@@ -21,8 +21,8 @@ interface R2Bucket {
 }
 export interface CaseEnv { CASE_ART?: R2Bucket; CASE_CHECKOUT_URL?: string }
 
-/** The Stripe payment link for the phone case. Empty until the product and price exist. */
-const DEFAULT_CHECKOUT = '';
+/** The Stripe payment link for the phone case ("Fluid Pour Phone Case", $37, US shipping, phone model dropdown). */
+const DEFAULT_CHECKOUT = 'https://buy.stripe.com/7sYbJ20kcfzX7Ld81e1sQ11';
 const MAX_BYTES = 6 * 1024 * 1024;
 const ID = /^[0-9a-f]{32}$/;
 
