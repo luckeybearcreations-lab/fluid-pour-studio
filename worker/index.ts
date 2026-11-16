@@ -1,7 +1,8 @@
 import handler from "vinext/server/app-router-entry";
 import { handleProRequest, type ProEnv } from "./pro";
+import { handleCaseRequest, type CaseEnv } from "./case";
 
-type AppEnv = NonNullable<Parameters<typeof handler.fetch>[1]> & ProEnv & { PLAY_CERT_FINGERPRINTS?: string };
+type AppEnv = NonNullable<Parameters<typeof handler.fetch>[1]> & ProEnv & CaseEnv & { PLAY_CERT_FINGERPRINTS?: string };
 
 // Android app links: tells Android that the Google Play app may open this site full screen.
 // Fingerprints are public. More can be added here or as a comma-separated
@@ -30,6 +31,8 @@ export default {
     const { pathname } = new URL(request.url);
     if (pathname === "/.well-known/assetlinks.json") return assetLinks(env);
     if (pathname.startsWith("/api/pro/")) return handleProRequest(request, env);
+    // Phone case orders: stores the pour and hands back the payment link.
+    if (pathname.startsWith("/api/case/")) return handleCaseRequest(request, env);
     return handler.fetch(request, env, ctx);
   },
 };

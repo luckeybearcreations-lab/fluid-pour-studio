@@ -8,6 +8,8 @@ import { PaintColor } from '@/lib/palette';
 export interface FluidCanvasHandle {
   clear: () => void;
   exportPNG: (scale?: number, transparent?: boolean) => void;
+  /** The painting as a large JPEG for printing (phone case orders), or null if it can't be made. */
+  exportPrintBlob: () => Promise<Blob | null>;
   getSnapshot: () => { full: string; thumb: string } | null;
   loadSnapshot: (dataUrl: string) => void;
   undo: () => boolean;
@@ -125,6 +127,11 @@ const LegacyFluidCanvas = forwardRef<FluidCanvasHandle, FluidCanvasProps>((props
       link.href = out.toDataURL('image/png');
       link.click();
     },
+    exportPrintBlob: () => new Promise<Blob | null>(resolve => {
+      const out = composite(4, false);
+      if (!out) { resolve(null); return; }
+      out.toBlob(resolve, 'image/jpeg', 0.92);
+    }),
     getSnapshot: () => {
       const full = composite(1);
       if (!full) return null;
