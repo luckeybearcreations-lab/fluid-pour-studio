@@ -208,6 +208,16 @@ const GpuFluidCanvas = forwardRef<FluidCanvasHandle, GpuProps>((props, ref) => {
         window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
       }, 'image/png');
     },
+    exportPrintBlob: () => new Promise<Blob | null>(resolve => {
+      const engine = engineRef.current;
+      const box = containerRef.current;
+      if (!engine || !box) { resolve(null); return; }
+      // About 3000 pixels on the long edge: enough for a phone case without a huge upload.
+      const s = Math.max(1, Math.min(4, 3000 / Math.max(box.clientWidth, box.clientHeight)));
+      const out = engine.exportCanvas(Math.round(box.clientWidth * s), Math.round(box.clientHeight * s), false);
+      if (!out) { resolve(null); return; }
+      out.toBlob(resolve, 'image/jpeg', 0.92);
+    }),
     getSnapshot: () => {
       const engine = engineRef.current;
       const box = containerRef.current;

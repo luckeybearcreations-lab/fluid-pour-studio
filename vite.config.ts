@@ -15,6 +15,8 @@ export default defineConfig(async () => {
         config: {
           main: "./worker/index.ts",
           compatibility_flags: ["nodejs_compat"],
+          // Artwork for phone case orders (worker/case.ts).
+          r2_buckets: [{ binding: "CASE_ART", bucket_name: "fluidpour-case-art" }],
         },
       }),
     ],

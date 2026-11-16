@@ -76,7 +76,23 @@ In the Android app from Google Play, Pro is a one-time purchase handled by Googl
 Until all of these are done, the Android app's Unlock button reports that the purchase couldn't finish.
 Never show the Stripe link in the Play app: the code already hides it whenever Play Billing is present.
 
-## 5. Custom domain (optional)
+## 5. Phone case orders (website only)
+On the website, "Phone case" in the More menu sends the pour to the worker and then to a Stripe
+payment link (`worker/case.ts`). Orders are filled by hand in Printify. It needs:
+
+1. **The storage bucket.** An R2 bucket named `fluidpour-case-art` (bound as `CASE_ART` in
+   `vite.config.ts`). The deploy fails if the bucket does not exist.
+2. **The payment link.** In Stripe, a payment link for the phone case that collects the shipping
+   address and asks for the phone model. Put its address in `DEFAULT_CHECKOUT` in `worker/case.ts`,
+   or set it as a secret: `wrangler secret put CASE_CHECKOUT_URL --name fluidpourstudio`.
+
+Until both exist the button stays hidden. The Google Play app never shows it.
+
+To fill an order: open the payment in Stripe, copy its **Client reference ID**, and download the
+artwork from `https://fluidpour.shopluckybears.com/api/case/art/<that id>`. Then place the order
+in Printify with that picture and the buyer's phone model and address.
+
+## 6. Custom domain (optional)
 The app's home address is fluidpour.shopluckybears.com (`HOME_HOST` in `src/lib/useProSession.ts`). The older fluidpour.luckybears.org address still serves the app but sends visitors to the home address, because Pro is remembered per address. To serve it from another domain you own
 (for example one in your Cloudflare account): Cloudflare Dashboard → Workers & Pages →
 fluidpourstudio → Settings → Domains, then update `HOME_HOST` and the payment link redirect in step 3 to match.

@@ -13,7 +13,7 @@ import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine'
 import { PaintColor, DEFAULT_COLOR, PALETTE } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
 import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluidProject } from '@/lib/projectFile';
-import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause, Video, Share2, X } from 'lucide-react';
+import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause, Video, Share2, X, Smartphone } from 'lucide-react';
 
 const WELCOME_KEY = 'lbfs_welcomed_v1';
 const HOLD_TILT_KEY = 'lbfs_hold_tilt';
@@ -28,6 +28,28 @@ const AppLayout: React.FC = () => {
   useEffect(() => { if (paywallOpen && playApp && !playPrice) refreshPlayPrice(); }, [paywallOpen, playApp, playPrice, refreshPlayPrice]);
   const [paywallFeature, setPaywallFeature] = useState<'save' | 'export'>('save');
   const canvasRef = useRef<FluidCanvasHandle>(null);
+  // Phone case orders (worker/case.ts): website only, and only once the server has them set up.
+  const [caseEnabled, setCaseEnabled] = useState(false);
+  const [caseSending, setCaseSending] = useState(false);
+  useEffect(() => {
+    fetch('/api/case/config').then(r => (r.ok ? r.json() : null)).then((c: { enabled?: boolean } | null) => setCaseEnabled(Boolean(c?.enabled))).catch(() => {});
+  }, []);
+  const orderPhoneCase = async () => {
+    if (caseSending) return;
+    setCaseSending(true);
+    showToast('Sending your pour to checkout…', 15000);
+    try {
+      const blob = await canvasRef.current?.exportPrintBlob();
+      if (!blob) throw new Error('Paint something first, then try again.');
+      const res = await fetch('/api/case/upload', { method: 'POST', headers: { 'content-type': 'image/jpeg' }, body: blob });
+      const data = await res.json().catch(() => null) as { checkout?: string; error?: string } | null;
+      if (!res.ok || !data?.checkout) throw new Error(data?.error || 'Could not send your pour. Please try again.');
+      window.location.assign(data.checkout);
+    } catch (error) {
+      setCaseSending(false);
+      showToast(error instanceof Error ? error.message : 'Could not send your pour. Please try again.', 5000);
+    }
+  };
   const frameRef = useRef<HTMLDivElement>(null);
   const projectInputRef = useRef<HTMLInputElement>(null);
   const [tool, setTool] = useState<Tool>('pour');
@@ -338,6 +360,7 @@ const AppLayout: React.FC = () => {
           <button onClick={() => projectInputRef.current?.click()} className="action-button secondary" title="Open Lucky Bear project" aria-label="Open Lucky Bear project"><FolderOpen /><span className="action-label">Open</span></button>
           <button onClick={handleSaveProject} className="action-button secondary" title="Download Lucky Bear project" aria-label="Download Lucky Bear project"><FolderDown /><span className="action-label">Project</span></button>
           <button onClick={() => requirePro('export', () => canvasRef.current?.exportPNG(exportScale, transparentExport))} className="action-button secondary" title={`Export ${exportScale}× PNG`} aria-label={`Export ${exportScale}× PNG`}><Download /><span className="action-label">Export</span></button>
+          {caseEnabled && !playApp && <button onClick={orderPhoneCase} disabled={caseSending} className="action-button secondary" title="Put this pour on a phone case" aria-label="Put this pour on a phone case"><Smartphone /><span className="action-label">Phone case</span></button>}
           <button onClick={event => { if (!confirmClear) event.stopPropagation(); handleClear(); }} className={`action-button secondary ${confirmClear ? 'danger' : ''}`} aria-label={confirmClear ? 'Confirm clear canvas' : 'Clear canvas'}><Trash2 /><span className="action-label">{confirmClear ? 'Confirm' : 'Clear'}</span></button>
           </div>
           <button onClick={() => (canSave ? handleSave() : requirePro('save', handleSave))} disabled={saving} className="action-button primary">{saving ? <Loader2 className="animate-spin" /> : <Save />}<span>{saving ? 'Saving' : <>Save<span className="save-long"> pour</span>{!canSave && ' ✦'}</>}</span></button>
