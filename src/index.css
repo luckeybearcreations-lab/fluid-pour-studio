@@ -234,3 +234,16 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 /* Notice shown at an old address once the app has moved. */
 .moved-banner { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; padding: 10px 14px; background: #2a2416; color: #f0c77f; font: 500 13px/1.45 Manrope, system-ui, sans-serif; text-align: center; }
 .moved-banner a { flex: none; padding: 8px 14px; border-radius: 9px; background: #e3b76f; color: #141816; font-weight: 700; text-decoration: none; }
+
+/* Welcome screen (WelcomeModal) */
+.welcome-card { max-height: 92vh; overflow-y: auto; padding: 32px 28px 24px; }
+.welcome-mark { width: 56px; height: 56px; margin: 0 auto 14px; display: block; border-radius: 14px; }
+.welcome-steps { margin: 0 0 20px; padding: 0; list-style: none; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.welcome-steps li { display: flex; align-items: flex-start; gap: 10px; color: #c9cdc6; font-size: 13px; line-height: 1.5; }
+.welcome-steps b { color: #f0ece4; font-weight: 700; }
+.welcome-step-icon { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid rgba(227,183,111,.28); border-radius: 8px; background: #232b25; color: #dda94e; }
+.welcome-review { margin: 0 0 18px; padding: 14px; border-radius: 12px; background: rgba(227,183,111,.1); text-align: left; }
+.welcome-review p { margin: 0 0 12px; color: #e9dcc3; font-size: 13px; line-height: 1.55; }
+.welcome-review-button { width: 100%; height: 42px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid rgba(227,183,111,.5); border-radius: 10px; background: transparent; color: #f0c77f; font-size: 14px; font-weight: 700; cursor: pointer; }
+.welcome-review-button:hover { background: rgba(227,183,111,.14); }
+.welcome-sign { margin: 14px 0 0; color: #7f877e; font-family: 'Playfair Display', serif; font-style: italic; font-size: 13px; }

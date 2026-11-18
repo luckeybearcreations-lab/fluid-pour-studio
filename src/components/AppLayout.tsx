@@ -8,14 +8,17 @@ import StudioNotebook, { PourRecipe } from '@/components/StudioNotebook';
 import CanvasControls from '@/components/CanvasControls';
 import SpinDock from '@/components/SpinDock';
 import { PaywallModal } from '@/components/PaywallGate';
+import { WelcomeModal } from '@/components/WelcomeModal';
 import { useProSession, MANAGE_SUBSCRIPTION_URL, HOME_HOST, homeAddress } from '@/lib/useProSession';
 import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine';
 import { PaintColor, DEFAULT_COLOR, PALETTE } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
 import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluidProject } from '@/lib/projectFile';
-import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause, Video, Share2, X, Smartphone } from 'lucide-react';
+import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause, Video, Share2, X, Smartphone, HelpCircle } from 'lucide-react';
 
 const WELCOME_KEY = 'lbfs_welcomed_v1';
+// Set once the welcome screen has been closed, so it shows only on first launch.
+const WELCOME_SCREEN_KEY = 'lbfs_welcome_screen_v1';
 const HOLD_TILT_KEY = 'lbfs_hold_tilt';
 // Saved pours a free account can keep before Pro is needed.
 const FREE_SAVES = 3;
@@ -26,6 +29,18 @@ const AppLayout: React.FC = () => {
   const { pro: isPro, playApp, playPrice, refreshPlayPrice, buyWithPlay, restoreWithPlay } = useProSession(message => showToast(message, 5000));
   const [paywallOpen, setPaywallOpen] = useState(false);
   useEffect(() => { if (paywallOpen && playApp && !playPrice) refreshPlayPrice(); }, [paywallOpen, playApp, playPrice, refreshPlayPrice]);
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  const [welcomeChecked, setWelcomeChecked] = useState(false);
+  useEffect(() => {
+    let seen = true;
+    try { seen = Boolean(window.localStorage.getItem(WELCOME_SCREEN_KEY)); } catch { /* storage blocked: don't nag every visit */ }
+    setWelcomeOpen(!seen && !new URLSearchParams(window.location.search).has('checkout'));
+    setWelcomeChecked(true);
+  }, []);
+  const closeWelcome = () => {
+    setWelcomeOpen(false);
+    try { window.localStorage.setItem(WELCOME_SCREEN_KEY, '1'); } catch { /* ignore */ }
+  };
   const [paywallFeature, setPaywallFeature] = useState<'save' | 'export'>('save');
   const canvasRef = useRef<FluidCanvasHandle>(null);
   // Phone case orders (worker/case.ts): website only, and only once the server has them set up.
@@ -110,7 +125,7 @@ const AppLayout: React.FC = () => {
   }, []);
 
   // While any menu or panel is open the paint holds still, so nothing runs away while you look for a button.
-  const paused = moreOpen || galleryOpen || notebookOpen || paywallOpen || (narrow && sidebarOpen);
+  const paused = moreOpen || galleryOpen || notebookOpen || paywallOpen || welcomeOpen || (narrow && sidebarOpen);
 
   // Tilt: a new drag takes over from any levelling in progress; letting go eases back to level unless tilt is held.
   const changeTilt = useCallback((next: { x: number; y: number }) => {
@@ -159,8 +174,9 @@ const AppLayout: React.FC = () => {
     navigator.serviceWorker.register('/sw.js').catch(() => undefined);
   }, []);
 
-  // First visit: pour a small demo cup so the canvas isn't blank.
+  // First visit: pour a small demo cup so the canvas isn't blank. Waits until the welcome screen is closed.
   useEffect(() => {
+    if (!welcomeChecked || welcomeOpen) return;
     let seen = true;
     try { seen = Boolean(window.localStorage.getItem(WELCOME_KEY)); } catch { /* storage blocked: skip the demo */ }
     if (seen || new URLSearchParams(window.location.search).has('checkout')) return;
@@ -173,7 +189,7 @@ const AppLayout: React.FC = () => {
     }, 900);
     const back = window.setTimeout(() => setPourMode('stream'), 1500);
     return () => { window.clearTimeout(pour); window.clearTimeout(back); };
-  }, []);
+  }, [welcomeChecked, welcomeOpen]);
 
   // Free accounts can keep a few saved pours; Pro lifts the limit.
   const freeSavesLeft = Math.max(0, FREE_SAVES - gallery.length);
@@ -361,6 +377,7 @@ const AppLayout: React.FC = () => {
           <button onClick={handleSaveProject} className="action-button secondary" title="Download Lucky Bear project" aria-label="Download Lucky Bear project"><FolderDown /><span className="action-label">Project</span></button>
           <button onClick={() => requirePro('export', () => canvasRef.current?.exportPNG(exportScale, transparentExport))} className="action-button secondary" title={`Export ${exportScale}× PNG`} aria-label={`Export ${exportScale}× PNG`}><Download /><span className="action-label">Export</span></button>
           {caseEnabled && !playApp && <button onClick={orderPhoneCase} disabled={caseSending} className="action-button secondary" title="Put this pour on a phone case" aria-label="Put this pour on a phone case"><Smartphone /><span className="action-label">Phone case</span></button>}
+          <button onClick={() => setWelcomeOpen(true)} className="action-button secondary" aria-label="Open welcome and tips"><HelpCircle /><span className="action-label">Tips</span></button>
           <button onClick={event => { if (!confirmClear) event.stopPropagation(); handleClear(); }} className={`action-button secondary ${confirmClear ? 'danger' : ''}`} aria-label={confirmClear ? 'Confirm clear canvas' : 'Clear canvas'}><Trash2 /><span className="action-label">{confirmClear ? 'Confirm' : 'Clear'}</span></button>
           </div>
           <button onClick={() => (canSave ? handleSave() : requirePro('save', handleSave))} disabled={saving} className="action-button primary">{saving ? <Loader2 className="animate-spin" /> : <Save />}<span>{saving ? 'Saving' : <>Save<span className="save-long"> pour</span>{!canSave && ' ✦'}</>}</span></button>
@@ -423,6 +440,7 @@ const AppLayout: React.FC = () => {
       <GalleryPanel open={galleryOpen} items={gallery} loading={galleryLoading} offline={offline} syncing={syncing} onClose={() => setGalleryOpen(false)} onLoad={handleLoad} onDelete={handleDelete} onSync={handleSync} />
       <StudioNotebook open={notebookOpen} color={color} mode={pourMode} params={params} onClose={() => setNotebookOpen(false)} onLoad={loadRecipe} />
       <PaywallModal open={paywallOpen} feature={paywallFeature} note={paywallFeature === 'save' ? `You have used your ${FREE_SAVES} free saves. Go Pro for unlimited saves, or delete a saved pour to make room.` : undefined} onClose={() => setPaywallOpen(false)} movedTo={movedTo ?? undefined} play={playApp ? { price: playPrice, onBuy: buyWithPlay, onRestore: restoreWithPlay } : undefined} />
+      <WelcomeModal open={welcomeOpen} playApp={playApp} onClose={closeWelcome} />
       {toast && <div className="studio-toast">{toast}</div>}
     </div>
   );
