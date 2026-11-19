@@ -10,6 +10,8 @@ import "@fontsource/playfair-display/600-italic.css";
 import "@/index.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://fluidpour.shopluckybears.com"),
+  alternates: { canonical: "/" },
   title: "Lucky Bear Fluid Studio",
   description:
     "A mobile-first fluid art studio for pouring, tilting, mixing colors, saving recipes, and exporting finished art.",
@@ -20,9 +22,13 @@ export const metadata: Metadata = {
     title: "Lucky Bear Fluid Studio",
     description: "Pour, tilt and spin real-feeling acrylic paint on your phone.",
     type: "website",
-    images: ["/og-v2.jpg"],
+    url: "https://fluidpour.shopluckybears.com/",
+    images: ["https://fluidpour.shopluckybears.com/og-v2.jpg"],
   },
-  twitter: { card: "summary_large_image", images: ["/og-v2.jpg"] },
+  twitter: {
+    card: "summary_large_image",
+    images: ["https://fluidpour.shopluckybears.com/og-v2.jpg"],
+  },
 };
 
 export default function RootLayout({
