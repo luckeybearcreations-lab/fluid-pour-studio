@@ -210,7 +210,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid #dfb36d; outline-
 .canvas-paused svg { width: 14px; height: 14px; }
 .hold-tilt { margin-top: 9px; display: flex; align-items: center; gap: 8px; color: #b9bdb7; font-size: 11px; cursor: pointer; }
 .hold-tilt input { width: 16px; height: 16px; accent-color: #e3b76f; }
+.canvas-quick button.case-quick { display: none; }
 @media (max-width: 700px) { .canvas-quick { left: 10px; bottom: 10px; } }
+@media (max-width: 700px) { .canvas-quick button.case-quick { display: inline-flex; } }
 /* Tapping anywhere outside the More menu closes it. */
 .more-backdrop { display: none; }
 @media (max-width: 700px) { .more-backdrop { display: block; position: fixed; inset: 0; z-index: 55; } }

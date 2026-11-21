@@ -13,6 +13,7 @@ import { useProSession, MANAGE_SUBSCRIPTION_URL, HOME_HOST, homeAddress } from '
 import { CanvasSurface, PhysicsParams, PourMode, Tool } from '@/lib/fluidEngine';
 import { PaintColor, DEFAULT_COLOR, PALETTE } from '@/lib/palette';
 import { GalleryItem, fetchPours, savePour, deletePour, syncLocalPours } from '@/lib/gallery';
+import { looksBlank } from '@/lib/blankCheck';
 import { DEFAULT_PHYSICS, downloadFluidProject, FluidProjectData, normalizeFluidProject } from '@/lib/projectFile';
 import { Save, Download, Trash2, Images, PanelLeft, Loader2, CloudOff, Sparkles, BookOpen, WandSparkles, Droplets, Move, CircleDot, Palette, Undo2, Redo2, FolderDown, FolderOpen, MoreHorizontal, Rewind, LocateFixed, Square, Pause, Video, Share2, X, Smartphone, HelpCircle } from 'lucide-react';
 
@@ -56,6 +57,7 @@ const AppLayout: React.FC = () => {
     try {
       const blob = await canvasRef.current?.exportPrintBlob();
       if (!blob) throw new Error('Paint something first, then try again.');
+      if (await looksBlank(blob)) throw new Error('Your canvas is empty. Pour some paint first, then try again.');
       const res = await fetch('/api/case/upload', { method: 'POST', headers: { 'content-type': 'image/jpeg' }, body: blob });
       const data = await res.json().catch(() => null) as { checkout?: string; error?: string } | null;
       if (!res.ok || !data?.checkout) throw new Error(data?.error || 'Could not send your pour. Please try again.');
@@ -413,6 +415,7 @@ const AppLayout: React.FC = () => {
               {clipState === 'recording'
                 ? <button onClick={() => stopClipRef.current?.()} className="recording" aria-label="Stop recording the clip"><i className="rec-dot" /><span>Stop</span></button>
                 : <button onClick={startClip} title={`Record a ${CLIP_SECONDS}-second clip to share`} aria-label="Record a clip to share"><Video /><span>Clip</span></button>}
+              {caseEnabled && !playApp && <button onClick={orderPhoneCase} disabled={caseSending} className="case-quick" title="Put this pour on a phone case" aria-label="Put this pour on a phone case"><Smartphone /><span>Case</span></button>}
               {(tilt.x !== 0 || tilt.y !== 0) && <button onClick={levelCanvas} className="alert" aria-label="Level the canvas"><LocateFixed /><span>Level</span></button>}
               {spin !== 0 && <button onClick={() => setSpin(0)} className="alert" aria-label="Stop the turntable"><Square /><span>Stop</span></button>}
             </div>
