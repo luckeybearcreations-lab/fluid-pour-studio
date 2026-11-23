@@ -8,7 +8,7 @@ export default function TermsPage() {
       <article>
         <a href="/">← Back to the studio</a>
         <h1>Terms of Use</h1>
-        <p className="legal-meta">Lucky Bear Fluid Studio · Luckey Bear Creations LLC, Minot, North Dakota · Last updated November 12, 2026</p>
+        <p className="legal-meta">Lucky Bear Fluid Studio · Luckey Bear Creations LLC, Minot, North Dakota · Last updated November 23, 2026</p>
 
         <h2>Using the app</h2>
         <p>Fluid Studio is a digital paint-pouring studio. Pouring, tilting, spinning, undo and redo are free, along with up to 3 saved pours and shareable clips. By using the app you agree to these terms.</p>
@@ -24,6 +24,15 @@ export default function TermsPage() {
           <li>A website subscription is tied to the browser you subscribe in. It does not currently carry over to other devices or to the Android app.</li>
           <li>You can cancel a website subscription at any time from the <a href="https://billing.stripe.com/p/login/5kQfZi6IAdrPfdFchu1sQ00">subscription page</a> (enter the email you subscribed with), or by emailing <a href="mailto:luckeybearcreations@gmail.com">luckeybearcreations@gmail.com</a>. Pro stays active until the end of the period you have paid for.</li>
           <li>If something went wrong with a charge, email us and we will sort it out.</li>
+        </ul>
+
+        <h2>Phone cases (website only)</h2>
+        <ul>
+          <li>Phone cases are printed to order with the pour you send from the app, by our print partner, and shipped to US addresses only. The price and shipping are shown at checkout.</li>
+          <li>Pick your exact phone model at checkout. If your phone is not listed, choose Other and we will email you before anything is printed.</li>
+          <li>Because each case is made just for you, we cannot take returns for a change of mind. If your case arrives damaged, misprinted or for the wrong phone model, email us within 30 days of delivery with a photo and we will replace it free.</li>
+          <li>Colors on a printed case can look a little different from your screen.</li>
+          <li>Printing usually takes a few business days, plus shipping time. Questions about an order: <a href="mailto:luckeybearcreations@gmail.com">luckeybearcreations@gmail.com</a>.</li>
         </ul>
 
         <h2>Saved work</h2>

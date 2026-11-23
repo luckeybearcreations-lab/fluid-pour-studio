@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Trash2, Download, FolderOpen, ImageOff, CloudOff, Loader2, RefreshCw } from 'lucide-react';
 import { GalleryItem } from '@/lib/gallery';
+import { isCloudConfigured } from '@/lib/supabase';
 
 export type { GalleryItem };
 
@@ -46,7 +47,12 @@ const GalleryPanel: React.FC<Props> = ({ open, items, loading, offline, syncing,
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-zinc-100 uppercase tracking-widest">Gallery</h2>
-            {offline && (
+            {offline && !isCloudConfigured && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 text-[10px] font-medium" title="Your pours are saved on this device">
+                On this device
+              </span>
+            )}
+            {offline && isCloudConfigured && (
               <span className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 text-[10px] font-medium" title="Cloud unreachable — showing offline copies">
                 <CloudOff className="w-3 h-3" /> Offline
               </span>

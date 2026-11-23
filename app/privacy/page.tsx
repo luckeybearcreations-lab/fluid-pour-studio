@@ -8,10 +8,10 @@ export default function PrivacyPage() {
       <article>
         <a href="/">← Back to the studio</a>
         <h1>Privacy Policy</h1>
-        <p className="legal-meta">Lucky Bear Fluid Studio · Luckey Bear Creations LLC, Minot, North Dakota · Last updated November 12, 2026</p>
+        <p className="legal-meta">Lucky Bear Fluid Studio · Luckey Bear Creations LLC, Minot, North Dakota · Last updated November 23, 2026</p>
 
         <h2>The short version</h2>
-        <p>Fluid Studio has no accounts, no ads and no tracking or analytics. Your artwork stays on your device unless you choose to download or share it.</p>
+        <p>Fluid Studio has no accounts, no ads and no tracking or analytics. Your artwork stays on your device unless you choose to download or share it, or you order a phone case with it.</p>
 
         <h2>What stays on your device</h2>
         <ul>
@@ -19,6 +19,11 @@ export default function PrivacyPage() {
           <li>Project files and exported images are downloaded to your device. They are not sent to us.</li>
           <li>Clearing your browser or app data removes them.</li>
         </ul>
+
+        <h2>Phone case orders (website only)</h2>
+        <p>If you tap Phone case, the app sends a picture of your current pour to our server so it can be printed. It is stored with a random order number and is not linked to your name until you pay.</p>
+        <p>Checkout is handled by Stripe, which collects your name, email, shipping address, phone model and payment details. We see your name, email, shipping address and phone model so we can fill the order. We send the picture, your phone model and your shipping address to our print partner, Printify, which makes and ships the case. See <a href="https://printify.com/privacy-policy/" rel="noopener noreferrer">Printify's privacy policy</a>.</p>
+        <p>We delete the pour picture from our server within 90 days of the order. To have it deleted sooner, email us with your order number. The phone case option is not offered in the Android app from Google Play.</p>
 
         <h2>Payments</h2>
         <p>Fluid Studio Pro is sold through Stripe. Stripe collects your payment details and email address to process the subscription; we never see your card number. We can see your subscription status, your email address and your payment history in our Stripe account. See <a href="https://stripe.com/privacy" rel="noopener noreferrer">Stripe's privacy policy</a>.</p>
