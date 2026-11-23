@@ -37,9 +37,10 @@ export function checkoutUrl(env: CaseEnv): string | null {
 
 async function upload(request: Request, bucket: R2Bucket, checkout: string): Promise<Response> {
   if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
-  // Only this site's own pages may post artwork.
+  // Only this site's own pages may post artwork. Browsers always send Origin on a POST,
+  // so a missing Origin means a script, not the app.
   const origin = request.headers.get('origin');
-  if (origin && origin !== new URL(request.url).origin) return json({ error: 'Not allowed' }, 403);
+  if (!origin || origin !== new URL(request.url).origin) return json({ error: 'Not allowed' }, 403);
   if (Number(request.headers.get('content-length') || 0) > MAX_BYTES) return json({ error: 'That pour is too large to send.' }, 413);
   const bytes = await request.arrayBuffer();
   if (bytes.byteLength > MAX_BYTES) return json({ error: 'That pour is too large to send.' }, 413);
