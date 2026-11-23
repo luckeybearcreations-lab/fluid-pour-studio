@@ -15,12 +15,18 @@ Edit `.env`:
 - `VITE_CLOUD_GALLERY` — leave unset. Set to `on` only once sign-in exists; without it every visitor shares one gallery.
 
 ## 2. Build and deploy
+Easiest: run the **Fluid Pour** job in the LuckyBear-Runner (it downloads the newest code from GitHub
+into `LuckyBear-Sites\fluid-pour-studio`, builds, deploys and checks the live site).
+
+By hand, from the newest `fluid-pour-studio` folder (never the old `Codex\Projects\newfluidpourapp-webgl`
+folder: its old build undoes the phone case):
 ```powershell
-cd "C:\Users\Michael\Documents\Codex\Projects\newfluidpourapp-webgl"
+cd "$env:USERPROFILE\LuckyBear-Sites\fluid-pour-studio"
 npm ci
 npm run build
-wrangler deploy --config dist/server/wrangler.json --name fluidpourstudio
+npx wrangler deploy --config dist/server/wrangler.json --name fluidpourstudio
 ```
+Use `npx wrangler`: plain `wrangler` is not on this PC's PATH.
 The app is then live at the `fluidpourstudio` workers.dev address Wrangler prints.
 
 ## 3. Turn on Pro payments
