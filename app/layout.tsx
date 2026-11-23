@@ -12,15 +12,15 @@ import "@/index.css";
 export const metadata: Metadata = {
   metadataBase: new URL("https://fluidpour.shopluckybears.com"),
   alternates: { canonical: "/" },
-  title: "Lucky Bear Fluid Studio",
+  title: "Fluid Pour Studio: Acrylic Pour Painting App | Lucky Bear",
   description:
-    "A mobile-first fluid art studio for pouring, tilting, mixing colors, saving recipes, and exporting finished art.",
+    "Free acrylic pour painting on your phone or computer. Flip cup, Dutch pour, ring pour and cells, with tilt and spin. No mess, no ads, no account. Also on Google Play.",
   robots: { index: true, follow: true },
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
   openGraph: {
-    title: "Lucky Bear Fluid Studio",
-    description: "Pour, tilt and spin real-feeling acrylic paint on your phone.",
+    title: "Fluid Pour Studio: Lucky Bear",
+    description: "Pour, tilt and spin real-feeling acrylic paint on your phone. Free, no ads, no account.",
     type: "website",
     url: "https://fluidpour.shopluckybears.com/",
     images: ["https://fluidpour.shopluckybears.com/og-v2.jpg"],
