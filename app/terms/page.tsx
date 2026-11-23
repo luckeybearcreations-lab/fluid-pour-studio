@@ -30,7 +30,7 @@ export default function TermsPage() {
         <ul>
           <li>Phone cases are printed to order with the pour you send from the app, by our print partner, and shipped to US addresses only. The price and shipping are shown at checkout.</li>
           <li>Pick your exact phone model at checkout. If your phone is not listed, choose Other and we will email you before anything is printed.</li>
-          <li>Because each case is made just for you, we cannot take returns for a change of mind. If your case arrives damaged, misprinted or for the wrong phone model, email us within 30 days of delivery with a photo and we will replace it or refund you.</li>
+          <li>Because each case is made just for you, we cannot take returns for a change of mind. If your case arrives damaged, misprinted or for the wrong phone model, email us within 30 days of delivery with a photo and we will replace it free.</li>
           <li>Colors on a printed case can look a little different from your screen.</li>
           <li>Printing usually takes a few business days, plus shipping time. Questions about an order: <a href="mailto:luckeybearcreations@gmail.com">luckeybearcreations@gmail.com</a>.</li>
         </ul>
