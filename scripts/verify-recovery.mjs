@@ -168,6 +168,34 @@ for (const mode of ['flip', 'dirty', 'ring', 'dutch', 'swipe', 'open', 'bloom'])
   console.log('Google Play purchase check, acknowledgement, refund and forged-pass cases verified.');
 }
 
+{
+  // Phone case orders (worker/case.ts): config, upload checks and artwork ids.
+  const { handleCaseRequest } = await importBundle('worker/case.ts');
+  const store = new Map();
+  const bucket = {
+    async put(key, value) { store.set(key, value); },
+    async get(key) { return store.has(key) ? { body: new Blob([store.get(key)]).stream(), size: store.get(key).byteLength } : null; },
+  };
+  const env = { CASE_ART: bucket };
+  const jpeg = new Uint8Array(4096); jpeg.set([0xff, 0xd8, 0xff]);
+  const upload = (body, headers = { origin: 'https://app.test' }) =>
+    handleCaseRequest(new Request('https://app.test/api/case/upload', { method: 'POST', headers, body }), env);
+  assert.equal((await (await handleCaseRequest(new Request('https://app.test/api/case/config'), env)).json()).enabled, true);
+  assert.equal((await (await handleCaseRequest(new Request('https://app.test/api/case/config'), {})).json()).enabled, false, 'no bucket means no button');
+  const ok = await upload(jpeg);
+  assert.equal(ok.status, 200);
+  const { id, checkout } = await ok.json();
+  assert.match(id, /^[0-9a-f]{32}$/);
+  assert.ok(checkout.startsWith('https://buy.stripe.com/') && checkout.endsWith(`client_reference_id=${id}`));
+  assert.equal((await upload(jpeg, {})).status, 403, 'an upload without Origin must be refused');
+  assert.equal((await upload(jpeg, { origin: 'https://evil.test' })).status, 403, 'another site must not upload');
+  assert.equal((await upload(new Uint8Array(4096))).status, 400, 'a non-JPEG must be refused');
+  assert.equal((await upload(new Uint8Array(7 * 1024 * 1024).fill(0xff))).status, 413, 'an oversized pour must be refused');
+  assert.equal((await handleCaseRequest(new Request(`https://app.test/api/case/art/${id}`), env)).status, 200);
+  assert.equal((await handleCaseRequest(new Request('https://app.test/api/case/art/../secret'), env)).status, 404);
+  console.log('Phone case config, upload checks and artwork ids verified.');
+}
+
 console.log(`Recovery isolation verified across ${files.length} source/config files.`);
 console.log(fixtures.length ? `Legacy project compatibility verified with ${fixtures.length} saved projects.` : 'Legacy saved-project fixtures not found on this machine: skipped.');
 console.log('Material, pigment-mixing, and seven complete cup-pour modes verified.');
